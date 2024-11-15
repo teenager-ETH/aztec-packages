@@ -124,7 +124,7 @@ std::string to_name(AvmError error)
     }
 }
 
-bool is_valid(AvmError error)
+bool is_ok(AvmError error)
 {
     return error == AvmError::NO_ERROR;
 }
