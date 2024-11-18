@@ -62,13 +62,14 @@ export class Set extends Instruction {
   }
 
   public async execute(context: AvmContext): Promise<void> {
+    const res = TaggedMemory.buildFromTagTruncating(this.value, this.inTag);
+
     const memory = context.machineState.memory.track(this.type);
     context.machineState.consumeGas(this.gasCost());
 
     const operands = [this.dstOffset];
     const addressing = Addressing.fromWire(this.indirect, operands.length);
     const [dstOffset] = addressing.resolve(operands, memory);
-    const res = TaggedMemory.buildFromTagTruncating(this.value, this.inTag);
     memory.set(dstOffset, res);
 
     memory.assert({ writes: 1, addressing });
@@ -107,6 +108,8 @@ export class Cast extends Instruction {
     const [srcOffset, dstOffset] = addressing.resolve(operands, memory);
 
     const a = memory.get(srcOffset);
+    // TODO: If we want to ensure the tag validity at the decomposition/parsing
+    // step, we need to create a check routine and call it on dstTag above.
     const casted = TaggedMemory.buildFromTagTruncating(a.toBigInt(), this.dstTag);
 
     memory.set(dstOffset, casted);

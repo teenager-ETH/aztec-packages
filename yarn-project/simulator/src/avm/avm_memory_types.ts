@@ -15,7 +15,7 @@ import { type FunctionsOf } from '@aztec/foundation/types';
 
 import { strict as assert } from 'assert';
 
-import { InstructionExecutionError, TagCheckError } from './errors.js';
+import { InstructionExecutionError, InvalidTagValueError, TagCheckError } from './errors.js';
 import { Addressing, AddressingMode } from './opcodes/addressing_mode.js';
 
 /** MemoryValue gathers the common operations for all memory types. */
@@ -408,29 +408,7 @@ export class TaggedMemory implements TaggedMemoryInterface {
       case TypeTag.UINT128:
         return new Uint128(v & ((1n << 128n) - 1n));
       default:
-        throw new Error(`${TypeTag[tag]} is not a valid tag.`);
-    }
-  }
-
-  // Does not truncate. Type constructor will check that it fits.
-  public static buildFromTagOrDie(v: bigint | number, tag: TypeTag): MemoryValue {
-    switch (tag) {
-      case TypeTag.FIELD:
-        return new Field(v);
-      case TypeTag.UINT1:
-        return new Uint1(v);
-      case TypeTag.UINT8:
-        return new Uint8(v);
-      case TypeTag.UINT16:
-        return new Uint16(v);
-      case TypeTag.UINT32:
-        return new Uint32(v);
-      case TypeTag.UINT64:
-        return new Uint64(v);
-      case TypeTag.UINT128:
-        return new Uint128(v);
-      default:
-        throw new Error(`${TypeTag[tag]} is not a valid integral type.`);
+        throw new InvalidTagValueError(tag);
     }
   }
 

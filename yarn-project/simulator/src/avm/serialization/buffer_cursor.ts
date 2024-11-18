@@ -20,7 +20,6 @@ export class BufferCursor {
 
   public advance(n: number): void {
     this._position += n;
-    assert(n < this._buffer.length);
   }
 
   public readUint8(): number {
