@@ -5,6 +5,7 @@
 
 #include "barretenberg/vm/avm/generated/full_row.hpp"
 #include "barretenberg/vm/avm/trace/common.hpp"
+#include "barretenberg/vm/avm/trace/errors.hpp"
 #include "barretenberg/vm/avm/trace/opcode.hpp"
 
 namespace bb::avm_trace {
@@ -32,11 +33,11 @@ class AvmGasTraceBuilder {
     void finalize(std::vector<AvmFullRow<FF>>& trace);
     void finalize_lookups(std::vector<AvmFullRow<FF>>& trace);
 
-    void constrain_gas(uint32_t clk,
-                       OpCode opcode,
-                       uint32_t dyn_gas_multiplier = 0,
-                       uint32_t nested_l2_gas_cost = 0,
-                       uint32_t nested_da_gas_cost = 0);
+    AvmError constrain_gas(uint32_t clk,
+                           OpCode opcode,
+                           uint32_t dyn_gas_multiplier = 0,
+                           uint32_t nested_l2_gas_cost = 0,
+                           uint32_t nested_da_gas_cost = 0);
     void set_initial_gas(uint32_t l2_gas, uint32_t da_gas);
 
     uint32_t get_l2_gas_left() const;

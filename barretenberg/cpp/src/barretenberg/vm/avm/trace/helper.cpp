@@ -124,6 +124,8 @@ std::string to_name(AvmError error)
         return "ENVIRONMENT VARIABLE UNKNOWN";
     case AvmError::CONTRACT_INST_MEM_UNKNOWN:
         return "CONTRACT INSTANCE MEMBER UNKNOWN";
+    case AvmError::OUT_OF_GAS:
+        return "OUT OF GAS";
     default:
         throw std::runtime_error("Invalid error type");
         break;

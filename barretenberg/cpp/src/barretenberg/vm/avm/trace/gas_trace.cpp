@@ -37,7 +37,7 @@ uint32_t AvmGasTraceBuilder::get_da_gas_left() const
     return gas_trace.back().remaining_da_gas;
 }
 
-void AvmGasTraceBuilder::constrain_gas(
+AvmError AvmGasTraceBuilder::constrain_gas(
     uint32_t clk, OpCode opcode, uint32_t dyn_gas_multiplier, uint32_t nested_l2_gas_cost, uint32_t nested_da_gas_cost)
 {
     uint32_t effective_nested_l2_gas_cost = 0;
@@ -58,9 +58,14 @@ void AvmGasTraceBuilder::constrain_gas(
     auto dyn_l2_gas_cost = static_cast<uint32_t>(gas_info.dyn_l2_gas_fixed_table);
     auto dyn_da_gas_cost = static_cast<uint32_t>(gas_info.dyn_da_gas_fixed_table);
 
+    const auto consumed_l2_gas = base_l2_gas_cost + dyn_gas_multiplier * dyn_l2_gas_cost + effective_nested_l2_gas_cost;
+    const auto consumed_da_gas = base_da_gas_cost + dyn_gas_multiplier * dyn_da_gas_cost + effective_nested_da_gas_cost;
+
+    const bool out_of_gas = (remaining_l2_gas < consumed_l2_gas) || (remaining_da_gas < consumed_da_gas);
+
     // Decrease the gas left
-    remaining_l2_gas -= (base_l2_gas_cost + dyn_gas_multiplier * dyn_l2_gas_cost) + effective_nested_l2_gas_cost;
-    remaining_da_gas -= (base_da_gas_cost + dyn_gas_multiplier * dyn_da_gas_cost) + effective_nested_da_gas_cost;
+    remaining_l2_gas -= consumed_l2_gas;
+    remaining_da_gas -= consumed_da_gas;
 
     // Create a gas trace entry
     gas_trace.push_back({
@@ -74,6 +79,8 @@ void AvmGasTraceBuilder::constrain_gas(
         .remaining_l2_gas = remaining_l2_gas,
         .remaining_da_gas = remaining_da_gas,
     });
+
+    return out_of_gas ? AvmError::OUT_OF_GAS : AvmError::NO_ERROR;
 }
 
 void AvmGasTraceBuilder::finalize(std::vector<AvmFullRow<FF>>& main_trace)
