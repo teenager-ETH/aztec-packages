@@ -149,7 +149,8 @@ TEST_F(AvmExecutionTests, basicAddReturn)
                                "00FF";                    // ret size offset 255
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     // 2 instructions
     ASSERT_THAT(instructions, SizeIs(5));
@@ -211,7 +212,8 @@ TEST_F(AvmExecutionTests, setAndSubOpcodes)
                                "00FF";                    // ret size offset 255
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ASSERT_THAT(instructions, SizeIs(5));
 
@@ -294,7 +296,8 @@ TEST_F(AvmExecutionTests, powerWithMulOpcodes)
     bytecode_hex.append(ret_hex);
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ASSERT_THAT(instructions, SizeIs(16));
 
@@ -395,7 +398,8 @@ TEST_F(AvmExecutionTests, simpleInternalCall)
         ;
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     EXPECT_THAT(instructions, SizeIs(7));
 
@@ -477,7 +481,8 @@ TEST_F(AvmExecutionTests, nestedInternalCalls)
                                bytecode_f2 + bytecode_f1 + bytecode_g;
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ASSERT_THAT(instructions, SizeIs(13));
 
@@ -557,7 +562,8 @@ TEST_F(AvmExecutionTests, jumpAndCalldatacopy)
         ;
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ASSERT_THAT(instructions, SizeIs(8));
 
@@ -659,7 +665,8 @@ TEST_F(AvmExecutionTests, jumpiAndCalldatacopy)
         ;
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ASSERT_THAT(instructions, SizeIs(9));
 
@@ -718,7 +725,8 @@ TEST_F(AvmExecutionTests, movOpcode)
                                "00FF";                    // ret size offset 255
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ASSERT_THAT(instructions, SizeIs(4));
 
@@ -781,7 +789,8 @@ TEST_F(AvmExecutionTests, indMovOpcode)
                                "00FF";                    // ret size offset 255
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ASSERT_THAT(instructions, SizeIs(6));
 
@@ -825,7 +834,8 @@ TEST_F(AvmExecutionTests, setAndCastOpcodes)
                                "00FF";                    // ret size offset 255
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ASSERT_THAT(instructions, SizeIs(4));
 
@@ -898,7 +908,8 @@ TEST_F(AvmExecutionTests, toRadixBeOpcodeBytes)
                                "0200";                  // ret size offset 512
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     // Assign a vector that we will mutate internally in gen_trace to store the return values;
     std::vector<FF> returndata;
@@ -972,7 +983,8 @@ TEST_F(AvmExecutionTests, toRadixBeOpcodeBitsMode)
                                "0200";                  // ret size offset 512
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     // Assign a vector that we will mutate internally in gen_trace to store the return values;
     std::vector<FF> returndata;
@@ -1049,7 +1061,8 @@ TEST_F(AvmExecutionTests, sha256CompressionOpcode)
                                "0200";                    // ret size offset 512
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     // Assign a vector that we will mutate internally in gen_trace to store the return values;
     std::vector<FF> calldata = std::vector<FF>();
@@ -1116,7 +1129,8 @@ TEST_F(AvmExecutionTests, poseidon2PermutationOpCode)
                                "0200";                    // ret size offset 512
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     // Assign a vector that we will mutate internally in gen_trace to store the return values;
     std::vector<FF> returndata = std::vector<FF>();
@@ -1193,7 +1207,8 @@ TEST_F(AvmExecutionTests, keccakf1600OpCode)
                                "0200";                    // ret size offset 512
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     // Assign a vector that we will mutate internally in gen_trace to store the return values;
     std::vector<FF> calldata = std::vector<FF>();
@@ -1266,7 +1281,8 @@ TEST_F(AvmExecutionTests, embeddedCurveAddOpCode)
                                "0200";                          // ret size offset 512
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     // Assign a vector that we will mutate internally in gen_trace to store the return values;
     std::vector<FF> returndata;
@@ -1361,7 +1377,8 @@ TEST_F(AvmExecutionTests, msmOpCode)
                                "0200";                        // ret size offset 512
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     // Assign a vector that we will mutate internally in gen_trace to store the return values;
     std::vector<FF> returndata;
@@ -1432,7 +1449,8 @@ TEST_F(AvmExecutionTests, getEnvOpcode)
         "0200";                                                                 // ret size offset 512
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ASSERT_THAT(instructions, SizeIs(13));
 
@@ -1641,7 +1659,8 @@ TEST_F(AvmExecutionTests, getEnvOpcode)
 //        "0001";                                                                 // dst_offset
 //
 //    auto bytecode = hex_to_bytes(bytecode_hex);
-//    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+//    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+//    ASSERT_TRUE(is_ok(error));
 //
 //    // Public inputs for the circuit
 //    std::vector<FF> calldata;
@@ -1680,7 +1699,8 @@ TEST_F(AvmExecutionTests, l2GasLeft)
                                "00FF";                    // ret size offset 255
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ASSERT_THAT(instructions, SizeIs(4));
 
@@ -1729,7 +1749,8 @@ TEST_F(AvmExecutionTests, daGasLeft)
                                "00FF";                    // ret size offset 255
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ASSERT_THAT(instructions, SizeIs(4));
 
@@ -1768,7 +1789,8 @@ TEST_F(AvmExecutionTests, ExecutorThrowsWithTooMuchGasAllocated)
     public_inputs_vec[L2_START_GAS_LEFT_PCPI_OFFSET] = MAX_L2_GAS_PER_ENQUEUED_CALL + 1;
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ExecutionHints execution_hints;
     EXPECT_THROW_WITH_MESSAGE(gen_trace(bytecode, calldata, public_inputs_vec, returndata, execution_hints),
@@ -1788,7 +1810,8 @@ TEST_F(AvmExecutionTests, ExecutorThrowsWithIncorrectNumberOfPublicInputs)
     std::vector<FF> public_inputs_vec = { 1 };
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ExecutionHints execution_hints;
     EXPECT_THROW_WITH_MESSAGE(gen_trace(bytecode, calldata, public_inputs_vec, returndata, execution_hints),
@@ -1833,7 +1856,8 @@ TEST_F(AvmExecutionTests, kernelOutputEmitOpcodes)
                                "0000";                                // ret size 0
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ASSERT_THAT(instructions, SizeIs(8));
 
@@ -1962,7 +1986,8 @@ TEST_F(AvmExecutionTests, kernelOutputStorageLoadOpcodeSimple)
                                "00FF";                    // ret size offset 255
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ASSERT_THAT(instructions, SizeIs(5));
 
@@ -2028,7 +2053,8 @@ TEST_F(AvmExecutionTests, kernelOutputStorageStoreOpcodeSimple)
                                "0200";                        // ret size offset 512
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     std::vector<FF> returndata;
 
@@ -2090,7 +2116,8 @@ TEST_F(AvmExecutionTests, kernelOutputStorageOpcodes)
                                "00FF";                    // ret size offset 255
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ASSERT_THAT(instructions, SizeIs(6));
 
@@ -2176,7 +2203,8 @@ TEST_F(AvmExecutionTests, kernelOutputHashExistsOpcodes)
                                "0200";                             // ret size offset 512
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ASSERT_THAT(instructions, SizeIs(7));
 
@@ -2330,7 +2358,8 @@ TEST_F(AvmExecutionTests, opCallOpcodes)
                                "0200";                            // ret size offset 512
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     std::vector<FF> returndata;
 
@@ -2409,7 +2438,8 @@ TEST_F(AvmExecutionTests, opGetContractInstanceOpcode)
                                "0200";                       // ret size offset 512
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
 
     ASSERT_THAT(instructions, SizeIs(6));
 
@@ -2444,7 +2474,9 @@ TEST_F(AvmExecutionTests, opGetContractInstanceOpcodeBadEnum)
                                "0011";                                                              // exists offset
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    auto instructions = Deserialization::parse_bytecode_statically(bytecode);
+    auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_TRUE(is_ok(error));
+
     ASSERT_THAT(instructions, SizeIs(2));
 
     std::vector<FF> calldata;
@@ -2474,7 +2506,8 @@ TEST_F(AvmExecutionTests, invalidOpcode)
                                "0000";                  // ret size 0
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    EXPECT_THROW_WITH_MESSAGE(Deserialization::parse_bytecode_statically(bytecode), "Invalid opcode");
+    const auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_EQ(error, AvmError::INVALID_OPCODE);
 }
 
 // Negative test detecting an incomplete instruction: instruction tag present but an operand is missing
@@ -2491,7 +2524,8 @@ TEST_F(AvmExecutionTests, truncatedInstructionNoOperand)
                                "FF";                     // addr b and missing address for c = a-b
 
     auto bytecode = hex_to_bytes(bytecode_hex);
-    EXPECT_THROW_WITH_MESSAGE(Deserialization::parse_bytecode_statically(bytecode), "Operand is missing");
+    const auto [instructions, error] = Deserialization::parse_bytecode_statically(bytecode);
+    ASSERT_EQ(error, AvmError::PARSING_ERROR);
 }
 
 } // namespace tests_avm
