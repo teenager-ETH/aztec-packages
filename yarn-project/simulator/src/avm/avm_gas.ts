@@ -1,8 +1,5 @@
 import * as c from '@aztec/circuits.js/constants';
 
-import { TypeTag } from './avm_memory_types.js';
-import { InstructionExecutionError } from './errors.js';
-import { Addressing, AddressingMode } from './opcodes/addressing_mode.js';
 import { Opcode } from './serialization/instruction_serialization.js';
 
 /** Gas counters in L1, L2, and DA. */
@@ -148,49 +145,4 @@ export function getBaseGasCost(opcode: Opcode): Gas {
 
 export function getDynamicGasCost(opcode: Opcode): Gas {
   return DYNAMIC_GAS_COSTS.has(opcode) ? DYNAMIC_GAS_COSTS.get(opcode)! : makeCost(0, 0);
-}
-
-/** Returns the gas cost associated with the memory operations performed. */
-export function getMemoryGasCost(args: { reads?: number; writes?: number; indirect?: number }) {
-  const { reads, writes, indirect } = args;
-  const indirectCount = Addressing.fromWire(indirect ?? 0).count(AddressingMode.INDIRECT);
-  const l2MemoryGasCost =
-    (reads ?? 0) * GAS_COST_CONSTANTS.MEMORY_READ +
-    (writes ?? 0) * GAS_COST_CONSTANTS.MEMORY_WRITE +
-    indirectCount * GAS_COST_CONSTANTS.MEMORY_INDIRECT_READ_PENALTY;
-  return makeGas({ l2Gas: l2MemoryGasCost });
-}
-
-/** Constants used in base cost calculations. */
-export const GAS_COST_CONSTANTS = {
-  MEMORY_READ: 10,
-  MEMORY_INDIRECT_READ_PENALTY: 10,
-  MEMORY_WRITE: 100,
-};
-
-/** Returns gas cost for an operation on a given type tag based on the base cost per byte. */
-export function getGasCostForTypeTag(tag: TypeTag, baseCost: Gas) {
-  return mulGas(baseCost, getGasCostMultiplierFromTypeTag(tag));
-}
-
-/** Returns a multiplier based on the size of the type represented by the tag. Throws on uninitialized or invalid. */
-function getGasCostMultiplierFromTypeTag(tag: TypeTag) {
-  switch (tag) {
-    case TypeTag.UINT1: // same as u8
-      return 1;
-    case TypeTag.UINT8:
-      return 1;
-    case TypeTag.UINT16:
-      return 2;
-    case TypeTag.UINT32:
-      return 4;
-    case TypeTag.UINT64:
-      return 8;
-    case TypeTag.UINT128:
-      return 16;
-    case TypeTag.FIELD:
-      return 32;
-    case TypeTag.INVALID:
-      throw new InstructionExecutionError(`Invalid tag type for gas cost multiplier: ${TypeTag[tag]}`);
-  }
 }
