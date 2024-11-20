@@ -17,11 +17,13 @@ import { createBondManager } from './bond/factory.js';
 import { type ProverNodeConfig, type QuoteProviderConfig } from './config.js';
 import { ClaimsMonitor } from './monitors/claims-monitor.js';
 import { EpochMonitor } from './monitors/epoch-monitor.js';
+import { ProverCacheManager } from './prover-cache/cache_manager.js';
 import { createProverCoordination } from './prover-coordination/factory.js';
 import { ProverNode } from './prover-node.js';
 import { HttpQuoteProvider } from './quote-provider/http.js';
 import { SimpleQuoteProvider } from './quote-provider/simple.js';
 import { QuoteSigner } from './quote-signer.js';
+import { join } from 'path';
 
 /** Creates a new prover node given a config. */
 export async function createProverNode(
@@ -72,6 +74,9 @@ export async function createProverNode(
   const walletClient = publisher.getClient();
   const bondManager = await createBondManager(rollupContract, walletClient, config);
 
+  const cacheDir = config.cacheDir ? join(config.cacheDir, `prover_${config.proverId}`) : undefined;
+  const cacheManager = new ProverCacheManager(cacheDir);
+
   return new ProverNode(
     prover!,
     publisher,
@@ -86,6 +91,7 @@ export async function createProverNode(
     epochMonitor,
     bondManager,
     telemetry,
+    cacheManager,
     proverNodeConfig,
   );
 }

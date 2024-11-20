@@ -10,6 +10,7 @@ import {
   type EpochProver,
   type MerkleTreeWriteOperations,
   type ProofAndVerificationKey,
+  type ProverCache,
   ProvingRequestType,
   type ServerCircuitProver,
   type V2ProofInputsByType,
@@ -72,7 +73,7 @@ import {
   type ProvingResult,
   type TreeSnapshots,
 } from './epoch-proving-state.js';
-import { InMemoryOrchestratorCache, type OrchestratorCache } from './orchestrator_cache.js';
+import { SimpleProverCache } from './orchestrator_cache.js';
 import { ProvingOrchestratorMetrics } from './orchestrator_metrics.js';
 import { TxProvingState } from './tx-proving-state.js';
 
@@ -108,7 +109,7 @@ export class ProvingOrchestrator implements EpochProver {
     private prover: ServerCircuitProver,
     telemetryClient: TelemetryClient,
     private readonly proverId: Fr = Fr.ZERO,
-    private proofDB: OrchestratorCache = new InMemoryOrchestratorCache(),
+    private proofDB: ProverCache = new SimpleProverCache(),
   ) {
     this.metrics = new ProvingOrchestratorMetrics(telemetryClient, 'ProvingOrchestrator');
   }
