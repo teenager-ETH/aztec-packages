@@ -31,7 +31,7 @@ import { TestCircuitProver } from '../../../bb-prover/src/test/test_circuit_prov
 import { AvmFinalizedCallResult } from '../../../simulator/src/avm/avm_contract_call_result.js';
 import { type AvmPersistableStateManager } from '../../../simulator/src/avm/journal/journal.js';
 import { ProvingOrchestrator } from '../orchestrator/index.js';
-import { InMemoryOrchestratorDatabase, type OrchestratorDatabase } from '../orchestrator/orchestrator_db.js';
+import { InMemoryOrchestratorCache, type OrchestratorCache } from '../orchestrator/orchestrator_cache.js';
 import { MemoryProvingQueue } from '../prover-agent/memory-proving-queue.js';
 import { ProverAgent } from '../prover-agent/prover-agent.js';
 import { getEnvironmentConfig, getSimulationProvider, makeGlobals } from './fixtures.js';
@@ -49,7 +49,7 @@ export class TestContext {
     public orchestrator: ProvingOrchestrator,
     public blockNumber: number,
     public directoriesToCleanup: string[],
-    public proofDB: OrchestratorDatabase,
+    public proofDB: OrchestratorCache,
     public logger: DebugLogger,
   ) {}
 
@@ -64,7 +64,7 @@ export class TestContext {
     createProver: (bbConfig: BBProverConfig) => Promise<ServerCircuitProver> = _ =>
       Promise.resolve(new TestCircuitProver(new NoopTelemetryClient(), new WASMSimulator())),
     blockNumber = 3,
-    db: OrchestratorDatabase = new InMemoryOrchestratorDatabase(),
+    db: OrchestratorCache = new InMemoryOrchestratorCache(),
   ) {
     const directoriesToCleanup: string[] = [];
     const globalVariables = makeGlobals(blockNumber);

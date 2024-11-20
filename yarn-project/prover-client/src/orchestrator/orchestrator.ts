@@ -72,7 +72,7 @@ import {
   type ProvingResult,
   type TreeSnapshots,
 } from './epoch-proving-state.js';
-import { InMemoryOrchestratorDatabase, type OrchestratorDatabase } from './orchestrator_db.js';
+import { InMemoryOrchestratorCache, type OrchestratorCache } from './orchestrator_cache.js';
 import { ProvingOrchestratorMetrics } from './orchestrator_metrics.js';
 import { TxProvingState } from './tx-proving-state.js';
 
@@ -108,7 +108,7 @@ export class ProvingOrchestrator implements EpochProver {
     private prover: ServerCircuitProver,
     telemetryClient: TelemetryClient,
     private readonly proverId: Fr = Fr.ZERO,
-    private proofDB: OrchestratorDatabase = new InMemoryOrchestratorDatabase(),
+    private proofDB: OrchestratorCache = new InMemoryOrchestratorCache(),
   ) {
     this.metrics = new ProvingOrchestratorMetrics(telemetryClient, 'ProvingOrchestrator');
   }
@@ -644,14 +644,14 @@ export class ProvingOrchestrator implements EpochProver {
           return;
         }
 
-        const cached = await this.proofDB.getProofStatus(jobId);
+        const cached = await this.proofDB.getProvingJobStatus(jobId);
         if (cached?.status === 'resolved') {
           await callback(cached.value as any);
           return;
         }
 
         let result: any;
-        await this.proofDB.setProofStatus(jobId, { status: 'in-progress', jobId });
+        await this.proofDB.setProvingJobStatus(jobId, { status: 'in-progress' });
 
         switch (type) {
           case ProvingRequestType.PRIVATE_KERNEL_EMPTY:
@@ -708,7 +708,7 @@ export class ProvingOrchestrator implements EpochProver {
           }
         }
 
-        await this.proofDB.setProofStatus(jobId, { status: 'resolved', value: result });
+        await this.proofDB.setProvingJobStatus(jobId, { status: 'resolved', value: result });
 
         // const result = await request(controller.signal);
         if (!provingState?.verifyState()) {
