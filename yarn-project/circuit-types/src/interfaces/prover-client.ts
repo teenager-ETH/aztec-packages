@@ -30,7 +30,9 @@ export type ProverConfig = {
   /** Artificial delay to introduce to all operations to the test prover. */
   proverTestDelayMs: number;
   /** Identifier of the prover */
-  proverId?: Fr;
+  proverId: Fr;
+  /** Where to store temporary data */
+  cacheDir?: string;
 };
 
 export const ProverConfigSchema = z.object({
@@ -41,8 +43,9 @@ export const ProverConfigSchema = z.object({
   proverAgentConcurrency: z.number(),
   proverJobTimeoutMs: z.number(),
   proverJobPollIntervalMs: z.number(),
-  proverId: schemas.Fr.optional(),
+  proverId: schemas.Fr,
   proverTestDelayMs: z.number(),
+  cacheDir: z.string().optional(),
 }) satisfies ZodFor<ProverConfig>;
 
 export const proverConfigMappings: ConfigMappingsType<ProverConfig> = {
@@ -84,11 +87,17 @@ export const proverConfigMappings: ConfigMappingsType<ProverConfig> = {
     env: 'PROVER_ID',
     parseEnv: (val: string) => parseProverId(val),
     description: 'Identifier of the prover',
+    defaultValue: Fr.ZERO,
   },
   proverTestDelayMs: {
     env: 'PROVER_TEST_DELAY_MS',
     description: 'Artificial delay to introduce to all operations to the test prover.',
     ...numberConfigHelper(0),
+  },
+  cacheDir: {
+    env: 'PROVER_CACHE_DIR',
+    description: 'Where to store cache data generated while proving',
+    defaultValue: '/tmp/aztec-prover',
   },
 };
 
@@ -101,7 +110,7 @@ function parseProverId(str: string) {
  * Provides the ability to generate proofs and build rollups.
  */
 export interface EpochProverManager {
-  createEpochProver(db: MerkleTreeReadOperations): EpochProver;
+  createEpochProver(db: MerkleTreeReadOperations, epochNumber: bigint): Promise<EpochProver>;
 
   start(): Promise<void>;
 

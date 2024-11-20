@@ -379,11 +379,11 @@ describe('prover-node', () => {
       _proverDb: MerkleTreeWriteOperations,
       _publicProcessorFactory: PublicProcessorFactory,
       cleanUp: (job: EpochProvingJob) => Promise<void>,
-    ): EpochProvingJob {
+    ): Promise<EpochProvingJob> {
       const job = mock<EpochProvingJob>({ getState: () => 'processing', run: () => Promise.resolve() });
       job.getId.mockReturnValue(jobs.length.toString());
       jobs.push({ epochNumber, job, cleanUp, db: publicDb });
-      return job;
+      return Promise.resolve(job);
     }
 
     public override triggerMonitors() {
