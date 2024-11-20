@@ -250,13 +250,20 @@ export class ProverNode implements ClaimsMonitorHandler, EpochMonitorHandler, Pr
       this.jobs.delete(job.getId());
     };
 
-    const job = this.doCreateEpochProvingJob(epochNumber, blocks, publicDb, proverDb, publicProcessorFactory, cleanUp);
+    const job = await this.doCreateEpochProvingJob(
+      epochNumber,
+      blocks,
+      publicDb,
+      proverDb,
+      publicProcessorFactory,
+      cleanUp,
+    );
     this.jobs.set(job.getId(), job);
     return job;
   }
 
   /** Extracted for testing purposes. */
-  protected doCreateEpochProvingJob(
+  protected async doCreateEpochProvingJob(
     epochNumber: bigint,
     blocks: L2Block[],
     publicDb: MerkleTreeWriteOperations,
@@ -268,7 +275,7 @@ export class ProverNode implements ClaimsMonitorHandler, EpochMonitorHandler, Pr
       publicDb,
       epochNumber,
       blocks,
-      this.prover.createEpochProver(proverDb),
+      await this.prover.createEpochProver(proverDb, epochNumber),
       publicProcessorFactory,
       this.publisher,
       this.l2BlockSource,

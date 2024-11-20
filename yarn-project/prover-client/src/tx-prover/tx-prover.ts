@@ -7,13 +7,28 @@ import {
   type ServerCircuitProver,
 } from '@aztec/circuit-types/interfaces';
 import { Fr } from '@aztec/circuits.js';
+import { createDebugLogger } from '@aztec/foundation/log';
+import { AztecLmdbStore } from '@aztec/kv-store/lmdb';
 import { NativeACVMSimulator } from '@aztec/simulator';
 import { type TelemetryClient } from '@aztec/telemetry-client';
 
+import { type Dirent } from 'fs';
+import { mkdir, readFile, readdir, rm } from 'fs/promises';
+import { join } from 'path';
+
 import { type ProverClientConfig } from '../config.js';
 import { ProvingOrchestrator } from '../orchestrator/orchestrator.js';
+import {
+  InMemoryOrchestratorDatabase,
+  type OrchestratorDatabase,
+  PersistentOrchestratorDatabase,
+} from '../orchestrator/orchestrator_db.js';
 import { MemoryProvingQueue } from '../prover-agent/memory-proving-queue.js';
 import { ProverAgent } from '../prover-agent/prover-agent.js';
+
+const EPOCH_DIR_PREFIX = 'epoch';
+const EPOCH_DIR_SEPARATOR = '_';
+const EPOCH_HASH_FILENAME = 'epoch_hash.txt';
 
 /**
  * A prover factory.
@@ -23,18 +38,23 @@ export class TxProver implements EpochProverManager {
   private queue: MemoryProvingQueue;
   private running = false;
 
+  private cacheDir?: string;
+
   private constructor(
     private config: ProverClientConfig,
     private telemetry: TelemetryClient,
     private agent?: ProverAgent,
+    private log = createDebugLogger('aztec:prover-client:tx-prover'),
   ) {
     // TODO(palla/prover-node): Cache the paddingTx here, and not in each proving orchestrator,
     // so it can be reused across multiple ones and not recomputed every time.
     this.queue = new MemoryProvingQueue(telemetry, config.proverJobTimeoutMs, config.proverJobPollIntervalMs);
+    this.cacheDir = this.config.cacheDir ? join(this.config.cacheDir, `tx_prover_${this.config.proverId}`) : undefined;
   }
 
-  public createEpochProver(db: MerkleTreeWriteOperations): EpochProver {
-    return new ProvingOrchestrator(db, this.queue, this.telemetry, this.config.proverId);
+  public async createEpochProver(db: MerkleTreeWriteOperations, epochNumber: bigint): Promise<EpochProver> {
+    const cache = await this.createIntermediateProofDatabase(epochNumber, Buffer.from(epochNumber.toString()));
+    return new ProvingOrchestrator(db, this.queue, this.telemetry, this.config.proverId, cache);
   }
 
   public getProverId(): Fr {
@@ -126,5 +146,57 @@ export class TxProver implements EpochProverManager {
 
   public getProvingJobSource(): ProvingJobSource {
     return this.queue;
+  }
+
+  /**
+   * Opens a new database for the orchestrator to store intermediate proofs
+   * @param epochNumber - The epoch number to open a database for
+   * @param epochHash - The hash of the whole epoch
+   * @returns A database to store intermediate proofs
+   */
+  private async createIntermediateProofDatabase(epochNumber: bigint, epochHash: Buffer): Promise<OrchestratorDatabase> {
+    if (!this.cacheDir) {
+      return new InMemoryOrchestratorDatabase();
+    }
+
+    const epochDir = EPOCH_DIR_PREFIX + EPOCH_DIR_SEPARATOR + epochNumber;
+    const dataDir = join(this.cacheDir, epochDir);
+
+    const storedEpochHash = await readFile(join(dataDir, EPOCH_HASH_FILENAME), 'utf8').catch(() => Buffer.alloc(0));
+    if (storedEpochHash.toString() !== epochHash.toString()) {
+      await rm(dataDir, { recursive: true, force: true });
+    }
+
+    await mkdir(dataDir, { recursive: true });
+    const store = AztecLmdbStore.open(dataDir);
+
+    this.log.debug(`Created new database for epoch ${epochNumber} at ${dataDir}`);
+
+    return new PersistentOrchestratorDatabase(store);
+  }
+
+  private async removeUnusedOrchestratorDatabases(currentEpochNumber: bigint): Promise<void> {
+    if (!this.cacheDir) {
+      return;
+    }
+
+    const entries: Dirent[] = await readdir(this.cacheDir, { withFileTypes: true }).catch(() => []);
+
+    for (const item of entries) {
+      if (!item.isDirectory()) {
+        continue;
+      }
+
+      const [prefix, epochNumber] = item.name.split(EPOCH_DIR_SEPARATOR);
+      if (prefix !== EPOCH_DIR_PREFIX) {
+        continue;
+      }
+
+      const epochNumberInt = BigInt(epochNumber);
+      if (epochNumberInt < currentEpochNumber) {
+        this.log.info(`Removing old epoch database for epoch ${epochNumberInt} at ${join(this.cacheDir, item.name)}`);
+        await rm(join(this.cacheDir, item.name), { recursive: true });
+      }
+    }
   }
 }

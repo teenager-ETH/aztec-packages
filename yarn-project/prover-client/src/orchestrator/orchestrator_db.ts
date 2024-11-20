@@ -1,59 +1,34 @@
-import type { V2ProofOutput } from '@aztec/circuit-types';
+import { type AztecKVStore, type AztecMap } from '@aztec/kv-store';
 
 export type ProofStatus =
   | { status: 'in-progress'; jobId: string }
-  | { status: 'resolved'; value: V2ProofOutput }
+  | { status: 'resolved'; value: any }
   | { status: 'rejected'; error: string };
 
-export interface EpochProofDatabase {
-  updateProofStatus(jobId: string, status: ProofStatus): Promise<void>;
+/**
+ * A database where the proving orchestrator can store intermediate results
+ */
+export interface OrchestratorDatabase {
+  /**
+   * Saves the status of a proving job
+   * @param jobId - The job ID
+   * @param status - The status of the proof
+   */
+  setProofStatus(jobId: string, status: ProofStatus): Promise<void>;
+
+  /**
+   * Retrieves the status of a proving job (if known)
+   * @param jobId - The job ID
+   */
   getProofStatus(jobId: string): Promise<ProofStatus | undefined>;
-
-  // updateTxProofStatus(
-  //   txHash: TxHash,
-  //   type:
-  //     | ProvingRequestType.PUBLIC_VM
-  //     | ProvingRequestType.TUBE_PROOF
-  //     | ProvingRequestType.PUBLIC_BASE_ROLLUP
-  //     | ProvingRequestType.PUBLIC_BASE_ROLLUP,
-  //   status: ProofStatus,
-  // ): Promise<void>;
-
-  // getTxProofStatus(
-  //   txHash: TxHash,
-  //   type:
-  //     | ProvingRequestType.PUBLIC_VM
-  //     | ProvingRequestType.TUBE_PROOF
-  //     | ProvingRequestType.PUBLIC_BASE_ROLLUP
-  //     | ProvingRequestType.PUBLIC_BASE_ROLLUP,
-  // ): Promise<ProofStatus | undefined>;
-
-  // updateMergeRollupProofStatus(blockNumber: number, level: number, index: number, status: ProofStatus): Promise<void>;
-
-  // getMergeRollupProofStatus(blockNumber: number, level: number, index: number): Promise<ProofStatus | undefined>;
-
-  // updateBlockRootRollupProofStatus(blockNumber: number, outputs: ProofStatus): Promise<void>;
-
-  // getBlockRootRollupProofStatus(blockNumber: number): Promise<ProofStatus | undefined>;
-
-  // updateBlockMergeProofStatus(level: number, index: number, outputs: ProofStatus): Promise<void>;
-
-  // getBlockMergeProofStatus(level: number, index: number): Promise<ProofStatus | undefined>;
-
-  // updateRootRollupProofStatus(outputs: ProofStatus): Promise<void>;
-
-  // getRootRollupProofStatus(): Promise<ProofStatus | undefined>;
 }
 
-export class InMemoryOrchestratorDatabase implements EpochProofDatabase {
-  // private txProofOutputs = new Map<string, ProofStatus>();
-  // private blockProofOutputs = new Map<string, ProofStatus>();
-  // private epochProofOutputs = new Map<string, ProofStatus>();
+export class InMemoryOrchestratorDatabase implements OrchestratorDatabase {
   private proofs: Record<string, ProofStatus> = {};
 
   constructor() {}
 
-  updateProofStatus(jobId: string, status: ProofStatus): Promise<void> {
+  setProofStatus(jobId: string, status: ProofStatus): Promise<void> {
     this.proofs[jobId] = status;
     return Promise.resolve();
   }
@@ -61,64 +36,25 @@ export class InMemoryOrchestratorDatabase implements EpochProofDatabase {
   getProofStatus(jobId: string): Promise<ProofStatus | undefined> {
     return Promise.resolve(this.proofs[jobId]);
   }
+}
 
-  // updateTxProofStatus(
-  //   txHash: TxHash,
-  //   type:
-  //     | ProvingRequestType.PUBLIC_VM
-  //     | ProvingRequestType.TUBE_PROOF
-  //     | ProvingRequestType.PUBLIC_BASE_ROLLUP
-  //     | ProvingRequestType.PUBLIC_BASE_ROLLUP,
-  //   outputs: ProofStatus,
-  // ): Promise<void> {
-  //   this.txProofOutputs.set(txHash.toString() + ':' + type, outputs);
-  //   return Promise.resolve();
-  // }
+export class PersistentOrchestratorDatabase implements OrchestratorDatabase {
+  private proofStatus: AztecMap<string, string>;
 
-  // getTxProofStatus(
-  //   txHash: TxHash,
-  //   type:
-  //     | ProvingRequestType.PUBLIC_VM
-  //     | ProvingRequestType.TUBE_PROOF
-  //     | ProvingRequestType.PUBLIC_BASE_ROLLUP
-  //     | ProvingRequestType.PUBLIC_BASE_ROLLUP,
-  // ): Promise<ProofStatus | undefined> {
-  //   return Promise.resolve(this.txProofOutputs.get(txHash.toString() + ':' + type));
-  // }
+  constructor(store: AztecKVStore) {
+    this.proofStatus = store.openMap('prover_node_proof_status');
+  }
 
-  // updateMergeRollupProofStatus(blockNumber: number, level: number, index: number, outputs: ProofStatus): Promise<void> {
-  //   this.blockProofOutputs.set(blockNumber + ':' + level + ':' + index, outputs);
-  //   return Promise.resolve();
-  // }
+  getProofStatus(jobId: string): Promise<ProofStatus | undefined> {
+    const item = this.proofStatus.get(jobId);
+    if (!item) {
+      return Promise.resolve(undefined);
+    }
 
-  // getMergeRollupProofStatus(blockNumber: number, level: number, index: number): Promise<ProofStatus | undefined> {
-  //   return Promise.resolve(this.blockProofOutputs.get(blockNumber + ':' + level + ':' + index));
-  // }
+    return Promise.resolve(JSON.parse(item));
+  }
 
-  // updateBlockRootRollupProofStatus(blockNumber: number, outputs: ProofStatus): Promise<void> {
-  //   this.blockProofOutputs.set(blockNumber.toString(), outputs);
-  //   return Promise.resolve();
-  // }
-
-  // getBlockRootRollupProofStatus(blockNumber: number): Promise<ProofStatus | undefined> {
-  //   return Promise.resolve(this.blockProofOutputs.get(blockNumber.toString()));
-  // }
-
-  // updateBlockMergeProofStatus(level: number, index: number, outputs: ProofStatus): Promise<void> {
-  //   this.epochProofOutputs.set(level + ':' + index, outputs);
-  //   return Promise.resolve();
-  // }
-
-  // getBlockMergeProofStatus(level: number, index: number): Promise<ProofStatus | undefined> {
-  //   return Promise.resolve(this.epochProofOutputs.get(level + ':' + index));
-  // }
-
-  // updateRootRollupProofStatus(outputs: ProofStatus): Promise<void> {
-  //   this.epochProofOutputs.set('root', outputs);
-  //   return Promise.resolve();
-  // }
-
-  // getRootRollupProofStatus(): Promise<ProofStatus | undefined> {
-  //   return Promise.resolve(this.epochProofOutputs.get('root'));
-  // }
+  setProofStatus(jobId: string, status: ProofStatus): Promise<void> {
+    return this.proofStatus.set(jobId, JSON.stringify(status));
+  }
 }
