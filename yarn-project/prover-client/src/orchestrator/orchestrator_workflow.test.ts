@@ -121,39 +121,6 @@ describe('prover/orchestrator', () => {
         const result = await orchestrator.finaliseEpoch();
         expect(result.proof).toBeDefined();
       });
-
-      it('reuses cached proofs', async () => {
-        const txs = [makeBloatedProcessedTxWithVKRoot(actualDb, 1), makeBloatedProcessedTxWithVKRoot(actualDb, 2)];
-
-        orchestrator.startNewEpoch(1, 1);
-        await orchestrator.startNewBlock(2, globalVariables, []);
-        await orchestrator.addNewTx(txs[0]);
-        await orchestrator.addNewTx(txs[1]);
-
-        // wait for the block root proof to try to be enqueued
-        await sleep(1000);
-
-        // now finish the block
-        await orchestrator.setBlockCompleted();
-
-        await expect(orchestrator.finaliseEpoch()).resolves.toBeDefined();
-
-        const newContext = await TestContext.new(logger, undefined, undefined, undefined, 3, context.proofDB);
-        const newOrchestrator = newContext.orchestrator;
-        newOrchestrator.startNewEpoch(1, 1);
-        await newOrchestrator.startNewBlock(2, globalVariables, []);
-        await newOrchestrator.addNewTx(txs[0]);
-        await newOrchestrator.addNewTx(txs[1]);
-
-        // wait for the block root proof to try to be enqueued
-        await sleep(1);
-
-        // now finish the block
-        await newOrchestrator.setBlockCompleted();
-
-        const result = await newOrchestrator.finaliseEpoch();
-        expect(result.proof).toBeDefined();
-      });
     });
   });
 });

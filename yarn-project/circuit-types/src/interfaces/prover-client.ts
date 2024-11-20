@@ -105,12 +105,33 @@ function parseProverId(str: string) {
   return Fr.fromString(str.startsWith('0x') ? str : Buffer.from(str, 'utf8').toString('hex'));
 }
 
+/** The status of a proving job */
+export type ProvingJobStatus = { status: 'in-progress' } | { status: 'resolved'; value: any };
+
+/**
+ * A database where the proving orchestrator can store intermediate results
+ */
+export interface ProverCache {
+  /**
+   * Saves the status of a proving job
+   * @param jobId - The job ID
+   * @param status - The status of the proof
+   */
+  setProvingJobStatus(jobId: string, status: ProvingJobStatus): Promise<void>;
+
+  /**
+   * Retrieves the status of a proving job (if known)
+   * @param jobId - The job ID
+   */
+  getProvingJobStatus(jobId: string): Promise<ProvingJobStatus | undefined>;
+}
+
 /**
  * The interface to the prover client.
  * Provides the ability to generate proofs and build rollups.
  */
 export interface EpochProverManager {
-  createEpochProver(db: MerkleTreeReadOperations, epochNumber: bigint): Promise<EpochProver>;
+  createEpochProver(db: MerkleTreeReadOperations, cache?: ProverCache): EpochProver;
 
   start(): Promise<void>;
 
