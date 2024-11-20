@@ -19,10 +19,10 @@ import { join } from 'path';
 import { type ProverClientConfig } from '../config.js';
 import { ProvingOrchestrator } from '../orchestrator/orchestrator.js';
 import {
-  InMemoryOrchestratorDatabase,
-  type OrchestratorDatabase,
-  PersistentOrchestratorDatabase,
-} from '../orchestrator/orchestrator_db.js';
+  InMemoryOrchestratorCache,
+  type OrchestratorCache,
+  PersistentOrchestratorCache,
+} from '../orchestrator/orchestrator_cache.js';
 import { MemoryProvingQueue } from '../prover-agent/memory-proving-queue.js';
 import { ProverAgent } from '../prover-agent/prover-agent.js';
 
@@ -154,9 +154,9 @@ export class TxProver implements EpochProverManager {
    * @param epochHash - The hash of the whole epoch
    * @returns A database to store intermediate proofs
    */
-  private async createIntermediateProofDatabase(epochNumber: bigint, epochHash: Buffer): Promise<OrchestratorDatabase> {
+  private async createIntermediateProofDatabase(epochNumber: bigint, epochHash: Buffer): Promise<OrchestratorCache> {
     if (!this.cacheDir) {
-      return new InMemoryOrchestratorDatabase();
+      return new InMemoryOrchestratorCache();
     }
 
     const epochDir = EPOCH_DIR_PREFIX + EPOCH_DIR_SEPARATOR + epochNumber;
@@ -172,7 +172,7 @@ export class TxProver implements EpochProverManager {
 
     this.log.debug(`Created new database for epoch ${epochNumber} at ${dataDir}`);
 
-    return new PersistentOrchestratorDatabase(store);
+    return new PersistentOrchestratorCache(store);
   }
 
   private async removeUnusedOrchestratorDatabases(currentEpochNumber: bigint): Promise<void> {
