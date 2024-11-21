@@ -131,7 +131,7 @@ export const AvmProvingRequestSchema = z.object({
   inputs: AvmCircuitInputs.schema,
 });
 
-export const ProofInputs = z.discriminatedUnion('type', [
+export const ProvingJobInputs = z.discriminatedUnion('type', [
   AvmProvingRequestSchema,
   z.object({ type: z.literal(ProvingRequestType.BASE_PARITY), inputs: BaseParityInputs.schema }),
   z.object({ type: z.literal(ProvingRequestType.ROOT_PARITY), inputs: RootParityInputs.schema }),
@@ -146,7 +146,7 @@ export const ProofInputs = z.discriminatedUnion('type', [
   z.object({ type: z.literal(ProvingRequestType.TUBE_PROOF), inputs: TubeInputs.schema }),
 ]);
 
-export type ProofInputs = z.infer<typeof ProofInputs>;
+export type ProvingJobInputs = z.infer<typeof ProvingJobInputs>;
 
 export const ProvingJobResult = z.discriminatedUnion('type', [
   z.object({
@@ -205,9 +205,9 @@ export const ProvingJobId = z.string();
 
 export type ProvingJobId = z.infer<typeof ProvingJobId>;
 
-export type ProvingJob<T extends ProofInputs> = { id: ProvingJobId; request: T };
+export type ProvingJob<T extends ProvingJobInputs> = { id: ProvingJobId; request: T };
 
-export const ProvingJobSchema = z.object({ id: ProvingJobId, request: ProofInputs });
+export const ProvingJobSchema = z.object({ id: ProvingJobId, request: ProvingJobInputs });
 
 export type ProvingJobResultsMap = {
   [ProvingRequestType.PRIVATE_KERNEL_EMPTY]: PublicInputsAndRecursiveProof<KernelCircuitPublicInputs>;
@@ -236,14 +236,14 @@ export function makeProvingRequestResult(
   return { type, result } as ProvingJobResult;
 }
 
-export const ProofInputsUri = z.string().brand('ProofInputUri');
-export type ProofInputsUri = z.infer<typeof ProofInputsUri>;
+export const ProvingJobInputsUri = z.string().brand('ProofInputUri');
+export type ProvingJobInputsUri = z.infer<typeof ProvingJobInputsUri>;
 
 export const V2ProvingJob = z.object({
   id: ProvingJobId,
   blockNumber: z.number(),
   type: z.nativeEnum(ProvingRequestType),
-  inputs: ProofInputsUri,
+  inputs: ProvingJobInputsUri,
 });
 
 export type V2ProvingJob = z.infer<typeof V2ProvingJob>;
@@ -251,7 +251,7 @@ export type V2ProvingJob = z.infer<typeof V2ProvingJob>;
 export const ProofOutputsUri = z.string().brand('ProofOutputUri');
 export type ProofOutputsUri = z.infer<typeof ProofOutputsUri>;
 
-export type ProofInputssByType = {
+export type ProvingJobInputsMap = {
   [ProvingRequestType.PRIVATE_KERNEL_EMPTY]: PrivateKernelEmptyInputData;
   [ProvingRequestType.PUBLIC_VM]: AvmCircuitInputs;
   [ProvingRequestType.PRIVATE_BASE_ROLLUP]: PrivateBaseRollupInputs;

@@ -1,6 +1,6 @@
 import {
-  type ProofInputs,
   type ProvingJobId,
+  type ProvingJobInputs,
   type ProvingJobResult,
   ProvingRequestType,
   type ServerCircuitProver,
@@ -26,7 +26,7 @@ export class ProvingJobController {
 
   constructor(
     private jobId: ProvingJobId,
-    private inputs: ProofInputs,
+    private inputs: ProvingJobInputs,
     private startedAt: number,
     private circuitProver: ServerCircuitProver,
     private onComplete: ProvingJobCompletionCallback,

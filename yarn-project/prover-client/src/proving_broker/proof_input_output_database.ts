@@ -1,8 +1,8 @@
 import {
-  ProofInputs,
-  type ProofInputsUri,
   type ProofOutputsUri,
   type ProvingJobId,
+  ProvingJobInputs,
+  type ProvingJobInputsUri,
   ProvingJobResult,
   type ProvingRequestType,
 } from '@aztec/circuit-types';
@@ -18,7 +18,11 @@ export interface ProofInputOutputDatabase {
    * @param proofInput - The proof input to save.
    * @returns The URI of the saved proof input.
    */
-  saveProofInput(jobId: ProvingJobId, type: ProvingRequestType, proofInput: ProofInputs): Promise<ProofInputsUri>;
+  saveProofInput(
+    jobId: ProvingJobId,
+    type: ProvingRequestType,
+    proofInput: ProvingJobInputs,
+  ): Promise<ProvingJobInputsUri>;
 
   /**
    * Save a proof output to the database.
@@ -38,7 +42,7 @@ export interface ProofInputOutputDatabase {
    * @param uri - The URI of the proof input to retrieve.
    * @returns The proof input.
    */
-  getProofInput(uri: ProofInputsUri): Promise<ProofInputs>;
+  getProofInput(uri: ProvingJobInputsUri): Promise<ProvingJobInputs>;
 
   /**
    * Retrieve a proof output from the database.
@@ -56,11 +60,15 @@ export class InlineProofIODatabase implements ProofInputOutputDatabase {
   private static readonly SEPARATOR = ',';
   private static readonly BUFFER_ENCODING = 'base64url';
 
-  saveProofInput(_id: ProvingJobId, _type: ProvingRequestType, proofInput: ProofInputs): Promise<ProofInputsUri> {
+  saveProofInput(
+    _id: ProvingJobId,
+    _type: ProvingRequestType,
+    proofInput: ProvingJobInputs,
+  ): Promise<ProvingJobInputsUri> {
     return Promise.resolve(
       (InlineProofIODatabase.PREFIX +
         InlineProofIODatabase.SEPARATOR +
-        Buffer.from(JSON.stringify(proofInput)).toString(InlineProofIODatabase.BUFFER_ENCODING)) as ProofInputsUri,
+        Buffer.from(JSON.stringify(proofInput)).toString(InlineProofIODatabase.BUFFER_ENCODING)) as ProvingJobInputsUri,
     );
   }
 
@@ -76,14 +84,14 @@ export class InlineProofIODatabase implements ProofInputOutputDatabase {
     );
   }
 
-  getProofInput(uri: ProofInputsUri): Promise<ProofInputs> {
+  getProofInput(uri: ProvingJobInputsUri): Promise<ProvingJobInputs> {
     const [prefix, data] = uri.split(',');
     if (prefix !== InlineProofIODatabase.PREFIX) {
       throw new Error('Invalid proof input URI: ' + prefix);
     }
 
     return Promise.resolve(
-      ProofInputs.parse(JSON.parse(Buffer.from(data, InlineProofIODatabase.BUFFER_ENCODING).toString())),
+      ProvingJobInputs.parse(JSON.parse(Buffer.from(data, InlineProofIODatabase.BUFFER_ENCODING).toString())),
     );
   }
 

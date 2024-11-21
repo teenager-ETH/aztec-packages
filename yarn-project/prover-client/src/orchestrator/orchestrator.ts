@@ -10,8 +10,8 @@ import {
   type EpochProver,
   type MerkleTreeWriteOperations,
   type ProofAndVerificationKey,
-  type ProofInputssByType,
   type ProverCache,
+  type ProvingJobInputsMap,
   type ProvingJobResultsMap,
   ProvingRequestType,
   type ServerCircuitProver,
@@ -625,7 +625,7 @@ export class ProvingOrchestrator implements EpochProver {
     provingState: EpochProvingState | BlockProvingState | undefined,
     jobId: string,
     type: T,
-    inputs: ProofInputssByType[T],
+    inputs: ProvingJobInputsMap[T],
     callback: (result: ProvingJobResultsMap[T]) => void | Promise<void>,
   ) {
     if (!provingState?.verifyState()) {
