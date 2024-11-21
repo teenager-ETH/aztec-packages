@@ -1,7 +1,7 @@
 import {
   ProvingError,
   type ProvingJobId,
-  type ProvingJobResult,
+  type ProvingJobResultsMap,
   ProvingRequestType,
   type ServerCircuitProver,
   type V2ProvingJob,
@@ -115,11 +115,11 @@ export class ProvingAgent {
     }
   };
 
-  handleJobResult = async (
+  handleJobResult = async <T extends ProvingRequestType>(
     jobId: ProvingJobId,
-    type: ProvingRequestType,
+    type: T,
     err: Error | undefined,
-    result: ProvingJobResult | undefined,
+    result: ProvingJobResultsMap[T] | undefined,
   ) => {
     if (err) {
       const retry = err.name === ProvingError.NAME ? (err as ProvingError).retry : false;

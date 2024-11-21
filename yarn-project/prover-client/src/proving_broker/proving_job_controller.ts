@@ -1,7 +1,7 @@
 import {
   type ProvingJobId,
   type ProvingJobInputs,
-  type ProvingJobResult,
+  type ProvingJobResultsMap,
   ProvingRequestType,
   type ServerCircuitProver,
 } from '@aztec/circuit-types';
@@ -12,12 +12,14 @@ export enum ProvingJobControllerStatus {
   DONE = 'done',
 }
 
-type ProvingJobCompletionCallback = (
-  jobId: ProvingJobId,
-  type: ProvingRequestType,
-  error: Error | undefined,
-  result: ProvingJobResult | undefined,
-) => void | Promise<void>;
+interface ProvingJobCompletionCallback<T extends ProvingRequestType = ProvingRequestType> {
+  (
+    jobId: ProvingJobId,
+    type: T,
+    error: Error | undefined,
+    result: ProvingJobResultsMap[T] | undefined,
+  ): void | Promise<void>;
+}
 
 export class ProvingJobController {
   private status: ProvingJobControllerStatus = ProvingJobControllerStatus.IDLE;
@@ -82,68 +84,56 @@ export class ProvingJobController {
     return ProvingRequestType[this.inputs.type];
   }
 
-  private async generateProof(): Promise<ProvingJobResult> {
+  private async generateProof(): Promise<ProvingJobResultsMap[ProvingRequestType]> {
     const { type, inputs } = this.inputs;
     const signal = this.abortController.signal;
     switch (type) {
       case ProvingRequestType.PUBLIC_VM: {
-        const result = await this.circuitProver.getAvmProof(inputs, signal);
-        return { type, result };
+        return await this.circuitProver.getAvmProof(inputs, signal);
       }
 
       case ProvingRequestType.PRIVATE_BASE_ROLLUP: {
-        const result = await this.circuitProver.getPrivateBaseRollupProof(inputs, signal);
-        return { type, result };
+        return await this.circuitProver.getPrivateBaseRollupProof(inputs, signal);
       }
 
       case ProvingRequestType.PUBLIC_BASE_ROLLUP: {
-        const result = await this.circuitProver.getPublicBaseRollupProof(inputs, signal);
-        return { type, result };
+        return await this.circuitProver.getPublicBaseRollupProof(inputs, signal);
       }
 
       case ProvingRequestType.MERGE_ROLLUP: {
-        const result = await this.circuitProver.getMergeRollupProof(inputs, signal);
-        return { type, result };
+        return await this.circuitProver.getMergeRollupProof(inputs, signal);
       }
 
       case ProvingRequestType.EMPTY_BLOCK_ROOT_ROLLUP: {
-        const result = await this.circuitProver.getEmptyBlockRootRollupProof(inputs, signal);
-        return { type, result };
+        return await this.circuitProver.getEmptyBlockRootRollupProof(inputs, signal);
       }
 
       case ProvingRequestType.BLOCK_ROOT_ROLLUP: {
-        const result = await this.circuitProver.getBlockRootRollupProof(inputs, signal);
-        return { type, result };
+        return await this.circuitProver.getBlockRootRollupProof(inputs, signal);
       }
 
       case ProvingRequestType.BLOCK_MERGE_ROLLUP: {
-        const result = await this.circuitProver.getBlockMergeRollupProof(inputs, signal);
-        return { type, result };
+        return await this.circuitProver.getBlockMergeRollupProof(inputs, signal);
       }
 
       case ProvingRequestType.ROOT_ROLLUP: {
-        const result = await this.circuitProver.getRootRollupProof(inputs, signal);
-        return { type, result };
+        return await this.circuitProver.getRootRollupProof(inputs, signal);
       }
 
       case ProvingRequestType.BASE_PARITY: {
-        const result = await this.circuitProver.getBaseParityProof(inputs, signal);
-        return { type, result };
+        return await this.circuitProver.getBaseParityProof(inputs, signal);
       }
 
       case ProvingRequestType.ROOT_PARITY: {
-        const result = await this.circuitProver.getRootParityProof(inputs, signal);
-        return { type, result };
+        return await this.circuitProver.getRootParityProof(inputs, signal);
       }
 
       case ProvingRequestType.PRIVATE_KERNEL_EMPTY: {
-        const result = await this.circuitProver.getEmptyPrivateKernelProof(inputs, signal);
-        return { type, result };
+        return await this.circuitProver.getEmptyPrivateKernelProof(inputs, signal);
       }
 
       case ProvingRequestType.TUBE_PROOF: {
-        const result = await this.circuitProver.getTubeProof(inputs, signal);
-        return { type, result };
+        return await this.circuitProver.getTubeProof(inputs, signal);
       }
 
       default: {

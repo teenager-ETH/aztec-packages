@@ -2,7 +2,9 @@ import {
   type ProofUri,
   type ProvingJobId,
   ProvingJobInputs,
+  type ProvingJobInputsMap,
   ProvingJobResult,
+  type ProvingJobResultsMap,
   type ProvingRequestType,
 } from '@aztec/circuit-types';
 
@@ -14,19 +16,27 @@ export interface ProofInputOutputDatabase {
    * Save a proof input to the database.
    * @param jobId - The ID of the job the proof input is associated with.
    * @param type - The type of the proving request.
-   * @param proofInput - The proof input to save.
+   * @param inputs - The proof input to save.
    * @returns The URI of the saved proof input.
    */
-  saveProofInput(jobId: ProvingJobId, type: ProvingRequestType, proofInput: ProvingJobInputs): Promise<ProofUri>;
+  saveProofInput<T extends ProvingRequestType>(
+    jobId: ProvingJobId,
+    type: T,
+    inputs: ProvingJobInputsMap[T],
+  ): Promise<ProofUri>;
 
   /**
    * Save a proof output to the database.
    * @param jobId - The ID of the job the proof input is associated with.
    * @param type - The type of the proving request.
-   * @param proofOutput - The proof output to save.
+   * @param result - The proof output to save.
    * @returns The URI of the saved proof output.
    */
-  saveProofOutput(jobId: ProvingJobId, type: ProvingRequestType, proofOutput: ProvingJobResult): Promise<ProofUri>;
+  saveProofOutput<T extends ProvingRequestType>(
+    id: ProvingJobId,
+    type: T,
+    result: ProvingJobResultsMap[T],
+  ): Promise<ProofUri>;
 
   /**
    * Retrieve a proof input from the database.
@@ -51,19 +61,29 @@ export class InlineProofIODatabase implements ProofInputOutputDatabase {
   private static readonly SEPARATOR = ',';
   private static readonly BUFFER_ENCODING = 'base64url';
 
-  saveProofInput(_id: ProvingJobId, _type: ProvingRequestType, proofInput: ProvingJobInputs): Promise<ProofUri> {
+  saveProofInput<T extends ProvingRequestType>(
+    _id: ProvingJobId,
+    type: T,
+    inputs: ProvingJobInputsMap[T],
+  ): Promise<ProofUri> {
+    const jobInputs = { type, inputs } as ProvingJobInputs;
     return Promise.resolve(
       (InlineProofIODatabase.PREFIX +
         InlineProofIODatabase.SEPARATOR +
-        Buffer.from(JSON.stringify(proofInput)).toString(InlineProofIODatabase.BUFFER_ENCODING)) as ProofUri,
+        Buffer.from(JSON.stringify(jobInputs)).toString(InlineProofIODatabase.BUFFER_ENCODING)) as ProofUri,
     );
   }
 
-  saveProofOutput(_id: ProvingJobId, _type: ProvingRequestType, proofOutput: ProvingJobResult): Promise<ProofUri> {
+  saveProofOutput<T extends ProvingRequestType>(
+    _id: ProvingJobId,
+    type: T,
+    result: ProvingJobResultsMap[T],
+  ): Promise<ProofUri> {
+    const jobResult = { type, result } as ProvingJobResult;
     return Promise.resolve(
       (InlineProofIODatabase.PREFIX +
         InlineProofIODatabase.SEPARATOR +
-        Buffer.from(JSON.stringify(proofOutput)).toString(InlineProofIODatabase.BUFFER_ENCODING)) as ProofUri,
+        Buffer.from(JSON.stringify(jobResult)).toString(InlineProofIODatabase.BUFFER_ENCODING)) as ProofUri,
     );
   }
 

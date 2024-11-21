@@ -53,10 +53,7 @@ describe('ProvingJobController', () => {
 
     controller.start();
     await sleep(1); // give promises a chance to complete
-    expect(onComplete).toHaveBeenCalledWith('1', undefined, {
-      type: ProvingRequestType.BASE_PARITY,
-      value: resp,
-    });
+    expect(onComplete).toHaveBeenCalledWith('1', ProvingRequestType.BASE_PARITY, undefined, resp);
   });
 
   it('calls onComplete with the error', async () => {
@@ -65,7 +62,7 @@ describe('ProvingJobController', () => {
 
     controller.start();
     await sleep(1);
-    expect(onComplete).toHaveBeenCalledWith('1', err, undefined);
+    expect(onComplete).toHaveBeenCalledWith('1', ProvingRequestType.BASE_PARITY, err, undefined);
   });
 
   it('does not crash if onComplete throws', async () => {

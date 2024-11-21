@@ -100,7 +100,7 @@ describe('ProvingAgent', () => {
     const { job, time, inputs } = makeBaseParityJob();
     const result = makeBaseParityResult();
 
-    jest.spyOn(prover, 'getBaseParityProof').mockResolvedValueOnce(result.value);
+    jest.spyOn(prover, 'getBaseParityProof').mockResolvedValueOnce(result);
 
     jobSource.getProvingJob.mockResolvedValueOnce({ job, time });
     proofDB.getProofInput.mockResolvedValueOnce(inputs);
@@ -109,7 +109,7 @@ describe('ProvingAgent', () => {
     agent.start();
 
     await jest.advanceTimersByTimeAsync(agentPollIntervalMs);
-    expect(proofDB.saveProofOutput).toHaveBeenCalledWith(result);
+    expect(proofDB.saveProofOutput).toHaveBeenCalledWith(job.id, job.type, result);
     expect(jobSource.reportProvingJobSuccess).toHaveBeenCalledWith(job.id, 'output-uri');
   });
 
@@ -158,7 +158,7 @@ describe('ProvingAgent', () => {
       allowList: [ProvingRequestType.BASE_PARITY],
     });
 
-    resolve(makeBaseParityResult().value);
+    resolve(makeBaseParityResult());
   });
 
   it('abandons jobs if told so by the source', async () => {
@@ -219,7 +219,7 @@ describe('ProvingAgent', () => {
       },
     );
 
-    secondProof.resolve(makeBaseParityResult().value);
+    secondProof.resolve(makeBaseParityResult());
   });
 
   function makeBaseParityJob(): { job: V2ProvingJob; time: number; inputs: ProvingJobInputs } {
@@ -236,11 +236,10 @@ describe('ProvingAgent', () => {
   }
 
   function makeBaseParityResult() {
-    const value = makePublicInputsAndRecursiveProof(
+    return makePublicInputsAndRecursiveProof(
       makeParityPublicInputs(),
       makeRecursiveProof(RECURSIVE_PROOF_LENGTH),
       VerificationKeyData.makeFakeHonk(),
     );
-    return { type: ProvingRequestType.BASE_PARITY, value };
   }
 });
