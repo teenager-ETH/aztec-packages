@@ -27,6 +27,12 @@ export interface ProvingJobProducer {
    * @param id - The ID of the job to get the status of
    */
   getProvingJobStatus(id: ProvingJobId): Promise<ProvingJobStatus>;
+
+  /**
+   * Waits for the job to settle and returns to the result
+   * @param id - The ID of the job to get the status of
+   */
+  waitForJobToSettle(id: ProvingJobId): Promise<{ value: ProofUri } | { error: string }>;
 }
 
 export interface ProvingJobFilter<T extends ProvingRequestType[]> {

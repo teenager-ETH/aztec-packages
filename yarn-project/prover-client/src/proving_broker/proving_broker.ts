@@ -6,7 +6,7 @@ import {
   ProvingRequestType,
 } from '@aztec/circuit-types';
 import { createDebugLogger } from '@aztec/foundation/log';
-import { RunningPromise } from '@aztec/foundation/promise';
+import { type PromiseWithResolvers, RunningPromise, promiseWithResolvers } from '@aztec/foundation/promise';
 import { PriorityMemoryQueue } from '@aztec/foundation/queue';
 
 import assert from 'assert';
@@ -64,6 +64,9 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
   // keep track of which proving job has been retried
   private retries = new Map<ProvingJobId, number>();
 
+  // keep track of jobs and when they finish
+  private promises = new Map<ProvingJobId, PromiseWithResolvers<{ value: ProofUri } | { error: string }>>();
+
   private timeoutPromise: RunningPromise;
   private timeSource = () => Math.floor(Date.now() / 1000);
   private jobTimeoutSec: number;
@@ -85,7 +88,10 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
       this.logger.info(`Restoring proving job id=${item.id} settled=${!!result}`);
 
       this.jobsCache.set(item.id, item);
+      this.promises.set(item.id, promiseWithResolvers());
+
       if (result) {
+        this.promises.get(item.id)!.resolve(result);
         this.resultsCache.set(item.id, result);
       } else {
         this.logger.debug(`Re-enqueuing proving job id=${item.id}`);
@@ -110,6 +116,10 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     await this.database.addProvingJob(job);
     this.jobsCache.set(job.id, job);
     this.enqueueJobInternal(job);
+  }
+
+  public waitForJobToSettle(id: ProvingJobId): Promise<{ value: ProofUri } | { error: string }> {
+    return this.promises.get(id)!.promise;
   }
 
   public async removeAndCancelProvingJob(id: ProvingJobId): Promise<void> {
@@ -204,6 +214,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     );
     await this.database.setProvingJobError(id, err);
     this.resultsCache.set(id, { error: String(err) });
+    this.promises.get(id)!.resolve({ error: String(err) });
   }
 
   reportProvingJobProgress<F extends ProvingRequestType[]>(
@@ -275,6 +286,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     );
     await this.database.setProvingJobResult(id, value);
     this.resultsCache.set(id, { value });
+    this.promises.get(id)!.resolve({ value });
   }
 
   private timeoutCheck = () => {
@@ -297,6 +309,9 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
   };
 
   private enqueueJobInternal(job: ProvingJob): void {
+    if (!this.promises.has(job.id)) {
+      this.promises.set(job.id, promiseWithResolvers());
+    }
     this.queues[job.type].put(job);
     this.logger.debug(`Enqueued new proving job id=${job.id}`);
   }
