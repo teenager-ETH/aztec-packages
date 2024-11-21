@@ -233,9 +233,23 @@ export type ProvingJobResultsMap = {
 export type ProvingRequestResultFor<T extends ProvingRequestType> = { type: T; result: ProvingJobResultsMap[T] };
 
 export const ProvingJobId = z.string();
+
+export const ProofUri = z.string().brand('ProvingJobUri');
+export type ProofUri = z.infer<typeof ProofUri>;
+
 export type ProvingJobId = z.infer<typeof ProvingJobId>;
-export type ProvingJob<T extends ProvingJobInputs> = { id: ProvingJobId; request: T };
-export const ProvingJobSchema = z.object({ id: ProvingJobId, request: ProvingJobInputs });
+export type ProvingJob = {
+  id: ProvingJobId;
+  type: ProvingRequestType;
+  blockNumber?: number;
+  inputsUri: ProofUri;
+};
+export const ProvingJob = z.object({
+  id: ProvingJobId,
+  type: z.nativeEnum(ProvingRequestType),
+  blockNumber: z.number().optional(),
+  inputsUri: ProofUri,
+});
 
 export function makeProvingRequestResult(
   type: ProvingRequestType,
@@ -243,18 +257,6 @@ export function makeProvingRequestResult(
 ): ProvingJobResult {
   return { type, result } as ProvingJobResult;
 }
-
-export const ProofUri = z.string().brand('ProvingJobUri');
-export type ProofUri = z.infer<typeof ProofUri>;
-
-export const V2ProvingJob = z.object({
-  id: ProvingJobId,
-  blockNumber: z.number(),
-  type: z.nativeEnum(ProvingRequestType),
-  inputs: ProofUri,
-});
-
-export type V2ProvingJob = z.infer<typeof V2ProvingJob>;
 
 export const ProvingJobStatus = z.discriminatedUnion('status', [
   z.object({ status: z.literal('in-queue') }),
@@ -264,6 +266,3 @@ export const ProvingJobStatus = z.discriminatedUnion('status', [
   z.object({ status: z.literal('rejected'), error: z.string() }),
 ]);
 export type ProvingJobStatus = z.infer<typeof ProvingJobStatus>;
-
-export const V2ProvingJobResult = z.union([z.object({ value: ProofUri }), z.object({ error: z.string() })]);
-export type V2ProvingJobResult = z.infer<typeof V2ProvingJobResult>;

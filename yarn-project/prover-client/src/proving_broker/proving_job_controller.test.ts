@@ -1,6 +1,7 @@
 import { type ProvingJobId, ProvingRequestType, makePublicInputsAndRecursiveProof } from '@aztec/circuit-types';
 import { RECURSIVE_PROOF_LENGTH, VerificationKeyData, makeRecursiveProof } from '@aztec/circuits.js';
 import { makeBaseParityInputs, makeParityPublicInputs } from '@aztec/circuits.js/testing';
+import { promiseWithResolvers } from '@aztec/foundation/promise';
 import { sleep } from '@aztec/foundation/sleep';
 
 import { jest } from '@jest/globals';
@@ -43,6 +44,13 @@ describe('ProvingJobController', () => {
     expect(controller.getStatus()).toBe(ProvingJobControllerStatus.DONE);
   });
 
+  it('reports ABORTED status after job is aborted', async () => {
+    controller.start();
+    controller.abort();
+    await sleep(1); // give promises a chance to complete
+    expect(controller.getStatus()).toBe(ProvingJobControllerStatus.ABORTED);
+  });
+
   it('calls onComplete with the proof', async () => {
     const resp = makePublicInputsAndRecursiveProof(
       makeParityPublicInputs(),
@@ -83,5 +91,31 @@ describe('ProvingJobController', () => {
     controller.start();
     await sleep(1);
     expect(onComplete).toHaveBeenCalled();
+  });
+
+  it('does not call onComplete if abort is called', async () => {
+    const { promise, resolve } = promiseWithResolvers<any>();
+    jest.spyOn(prover, 'getBaseParityProof').mockReturnValueOnce(promise);
+
+    controller.start();
+
+    await sleep(1);
+    expect(onComplete).not.toHaveBeenCalled();
+
+    controller.abort();
+    await sleep(1);
+    expect(onComplete).not.toHaveBeenCalled();
+
+    // simulate a prover that does not respect signals, still completes the proof after aborting
+    resolve(
+      makePublicInputsAndRecursiveProof(
+        makeParityPublicInputs(),
+        makeRecursiveProof(RECURSIVE_PROOF_LENGTH),
+        VerificationKeyData.makeFakeHonk(),
+      ),
+    );
+
+    await sleep(1);
+    expect(onComplete).not.toHaveBeenCalled();
   });
 });

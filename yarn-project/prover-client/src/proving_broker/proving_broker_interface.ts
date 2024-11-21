@@ -1,9 +1,9 @@
 import {
   type ProofUri,
+  type ProvingJob,
   type ProvingJobId,
   type ProvingJobStatus,
   type ProvingRequestType,
-  type V2ProvingJob,
 } from '@aztec/circuit-types';
 
 /**
@@ -14,7 +14,7 @@ export interface ProvingJobProducer {
    * Enqueues a proving job
    * @param job - The job to enqueue
    */
-  enqueueProvingJob(job: V2ProvingJob): Promise<void>;
+  enqueueProvingJob(job: ProvingJob): Promise<void>;
 
   /**
    * Cancels a proving job and clears all of its
@@ -43,7 +43,7 @@ export interface ProvingJobConsumer {
    */
   getProvingJob<T extends ProvingRequestType[]>(
     filter?: ProvingJobFilter<T>,
-  ): Promise<{ job: V2ProvingJob; time: number } | undefined>;
+  ): Promise<{ job: ProvingJob; time: number } | undefined>;
 
   /**
    * Marks a proving job as successful
@@ -70,5 +70,5 @@ export interface ProvingJobConsumer {
     id: ProvingJobId,
     startedAt: number,
     filter?: ProvingJobFilter<F>,
-  ): Promise<{ job: V2ProvingJob; time: number } | undefined>;
+  ): Promise<{ job: ProvingJob; time: number } | undefined>;
 }

@@ -10,6 +10,7 @@ export enum ProvingJobControllerStatus {
   IDLE = 'idle',
   PROVING = 'proving',
   DONE = 'done',
+  ABORTED = 'aborted',
 }
 
 interface ProvingJobCompletionCallback<T extends ProvingRequestType = ProvingRequestType> {
@@ -43,15 +44,24 @@ export class ProvingJobController {
     this.promise = this.generateProof()
       .then(
         result => {
+          if (this.status === ProvingJobControllerStatus.ABORTED) {
+            return;
+          }
+
           this.status = ProvingJobControllerStatus.DONE;
           return this.onComplete(this.jobId, this.inputs.type, undefined, result);
         },
         error => {
-          this.status = ProvingJobControllerStatus.DONE;
+          if (this.status === ProvingJobControllerStatus.ABORTED) {
+            return;
+          }
+
           if (error.name === 'AbortError') {
             // Ignore abort errors
             return;
           }
+
+          this.status = ProvingJobControllerStatus.DONE;
           return this.onComplete(this.jobId, this.inputs.type, error, undefined);
         },
       )
@@ -69,6 +79,7 @@ export class ProvingJobController {
       return;
     }
 
+    this.status = ProvingJobControllerStatus.ABORTED;
     this.abortController.abort();
   }
 

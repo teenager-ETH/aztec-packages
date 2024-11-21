@@ -1,10 +1,9 @@
 import {
   type ProofUri,
+  type ProvingJob,
   type ProvingJobId,
   type ProvingJobStatus,
   ProvingRequestType,
-  type V2ProvingJob,
-  type V2ProvingJobResult,
 } from '@aztec/circuit-types';
 import { createDebugLogger } from '@aztec/foundation/log';
 import { RunningPromise } from '@aztec/foundation/promise';
@@ -33,28 +32,28 @@ type ProofRequestBrokerConfig = {
  */
 export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
   private queues: ProvingQueues = {
-    [ProvingRequestType.PUBLIC_VM]: new PriorityMemoryQueue<V2ProvingJob>(provingJobComparator),
-    [ProvingRequestType.TUBE_PROOF]: new PriorityMemoryQueue<V2ProvingJob>(provingJobComparator),
-    [ProvingRequestType.PRIVATE_KERNEL_EMPTY]: new PriorityMemoryQueue<V2ProvingJob>(provingJobComparator),
+    [ProvingRequestType.PUBLIC_VM]: new PriorityMemoryQueue<ProvingJob>(provingJobComparator),
+    [ProvingRequestType.TUBE_PROOF]: new PriorityMemoryQueue<ProvingJob>(provingJobComparator),
+    [ProvingRequestType.PRIVATE_KERNEL_EMPTY]: new PriorityMemoryQueue<ProvingJob>(provingJobComparator),
 
-    [ProvingRequestType.PRIVATE_BASE_ROLLUP]: new PriorityMemoryQueue<V2ProvingJob>(provingJobComparator),
-    [ProvingRequestType.PUBLIC_BASE_ROLLUP]: new PriorityMemoryQueue<V2ProvingJob>(provingJobComparator),
-    [ProvingRequestType.MERGE_ROLLUP]: new PriorityMemoryQueue<V2ProvingJob>(provingJobComparator),
-    [ProvingRequestType.ROOT_ROLLUP]: new PriorityMemoryQueue<V2ProvingJob>(provingJobComparator),
+    [ProvingRequestType.PRIVATE_BASE_ROLLUP]: new PriorityMemoryQueue<ProvingJob>(provingJobComparator),
+    [ProvingRequestType.PUBLIC_BASE_ROLLUP]: new PriorityMemoryQueue<ProvingJob>(provingJobComparator),
+    [ProvingRequestType.MERGE_ROLLUP]: new PriorityMemoryQueue<ProvingJob>(provingJobComparator),
+    [ProvingRequestType.ROOT_ROLLUP]: new PriorityMemoryQueue<ProvingJob>(provingJobComparator),
 
-    [ProvingRequestType.BLOCK_MERGE_ROLLUP]: new PriorityMemoryQueue<V2ProvingJob>(provingJobComparator),
-    [ProvingRequestType.BLOCK_ROOT_ROLLUP]: new PriorityMemoryQueue<V2ProvingJob>(provingJobComparator),
-    [ProvingRequestType.EMPTY_BLOCK_ROOT_ROLLUP]: new PriorityMemoryQueue<V2ProvingJob>(provingJobComparator),
+    [ProvingRequestType.BLOCK_MERGE_ROLLUP]: new PriorityMemoryQueue<ProvingJob>(provingJobComparator),
+    [ProvingRequestType.BLOCK_ROOT_ROLLUP]: new PriorityMemoryQueue<ProvingJob>(provingJobComparator),
+    [ProvingRequestType.EMPTY_BLOCK_ROOT_ROLLUP]: new PriorityMemoryQueue<ProvingJob>(provingJobComparator),
 
-    [ProvingRequestType.BASE_PARITY]: new PriorityMemoryQueue<V2ProvingJob>(provingJobComparator),
-    [ProvingRequestType.ROOT_PARITY]: new PriorityMemoryQueue<V2ProvingJob>(provingJobComparator),
+    [ProvingRequestType.BASE_PARITY]: new PriorityMemoryQueue<ProvingJob>(provingJobComparator),
+    [ProvingRequestType.ROOT_PARITY]: new PriorityMemoryQueue<ProvingJob>(provingJobComparator),
   };
 
   // holds a copy of the database in memory in order to quickly fulfill requests
   // this is fine because this broker is the only one that can modify the database
-  private jobsCache = new Map<ProvingJobId, V2ProvingJob>();
+  private jobsCache = new Map<ProvingJobId, ProvingJob>();
   // as above, but for results
-  private resultsCache = new Map<ProvingJobId, V2ProvingJobResult>();
+  private resultsCache = new Map<ProvingJobId, { value: ProofUri } | { error: string }>();
 
   // keeps track of which jobs are currently being processed
   // in the event of a crash this information is lost, but that's ok
@@ -101,7 +100,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     return this.timeoutPromise.stop();
   }
 
-  public async enqueueProvingJob(job: V2ProvingJob): Promise<void> {
+  public async enqueueProvingJob(job: ProvingJob): Promise<void> {
     if (this.jobsCache.has(job.id)) {
       const existing = this.jobsCache.get(job.id);
       assert.deepStrictEqual(job, existing, 'Duplicate proving job ID');
@@ -146,7 +145,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
   // eslint-disable-next-line require-await
   async getProvingJob<T extends ProvingRequestType[]>(
     filter: ProvingJobFilter<T> = {},
-  ): Promise<{ job: V2ProvingJob; time: number } | undefined> {
+  ): Promise<{ job: ProvingJob; time: number } | undefined> {
     const allowedProofs: ProvingRequestType[] =
       Array.isArray(filter.allowList) && filter.allowList.length > 0
         ? [...filter.allowList]
@@ -155,7 +154,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
 
     for (const proofType of allowedProofs) {
       const queue = this.queues[proofType];
-      let job: V2ProvingJob | undefined;
+      let job: ProvingJob | undefined;
       // exhaust the queue and make sure we're not sending a job that's already in progress
       // or has already been completed
       // this can happen if the broker crashes and restarts
@@ -211,7 +210,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     id: ProvingJobId,
     startedAt: number,
     filter?: ProvingJobFilter<F>,
-  ): Promise<{ job: V2ProvingJob; time: number } | undefined> {
+  ): Promise<{ job: ProvingJob; time: number } | undefined> {
     const job = this.jobsCache.get(id);
     if (!job) {
       this.logger.warn(`Proving job id=${id} does not exist`);
@@ -297,14 +296,14 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     }
   };
 
-  private enqueueJobInternal(job: V2ProvingJob): void {
+  private enqueueJobInternal(job: ProvingJob): void {
     this.queues[job.type].put(job);
     this.logger.debug(`Enqueued new proving job id=${job.id}`);
   }
 }
 
 type ProvingQueues = {
-  [K in ProvingRequestType]: PriorityMemoryQueue<V2ProvingJob>;
+  [K in ProvingRequestType]: PriorityMemoryQueue<ProvingJob>;
 };
 
 /**
@@ -313,10 +312,12 @@ type ProvingQueues = {
  * @param b - Another proving job
  * @returns A number indicating the relative priority of the two proving jobs
  */
-function provingJobComparator(a: V2ProvingJob, b: V2ProvingJob): -1 | 0 | 1 {
-  if (a.blockNumber < b.blockNumber) {
+function provingJobComparator(a: ProvingJob, b: ProvingJob): -1 | 0 | 1 {
+  const aBlockNumber = a.blockNumber ?? 0;
+  const bBlockNumber = b.blockNumber ?? 0;
+  if (aBlockNumber < bBlockNumber) {
     return -1;
-  } else if (a.blockNumber > b.blockNumber) {
+  } else if (aBlockNumber > bBlockNumber) {
     return 1;
   } else {
     return 0;

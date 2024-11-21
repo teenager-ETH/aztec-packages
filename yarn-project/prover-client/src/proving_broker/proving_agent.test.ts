@@ -1,11 +1,11 @@
 import {
   type ProofUri,
   ProvingError,
+  type ProvingJob,
   type ProvingJobId,
   type ProvingJobInputs,
   ProvingRequestType,
   type PublicInputsAndRecursiveProof,
-  type V2ProvingJob,
   makePublicInputsAndRecursiveProof,
 } from '@aztec/circuit-types';
 import {
@@ -222,14 +222,29 @@ describe('ProvingAgent', () => {
     secondProof.resolve(makeBaseParityResult());
   });
 
-  function makeBaseParityJob(): { job: V2ProvingJob; time: number; inputs: ProvingJobInputs } {
+  it('reports an error if inputs cannot be loaded', async () => {
+    const { job, time } = makeBaseParityJob();
+    jobSource.getProvingJob.mockResolvedValueOnce({ job, time });
+    proofDB.getProofInput.mockRejectedValueOnce(new Error('Failed to load proof inputs'));
+
+    agent.start();
+
+    await jest.advanceTimersByTimeAsync(agentPollIntervalMs);
+    expect(jobSource.reportProvingJobError).toHaveBeenCalledWith(
+      job.id,
+      new Error('Failed to load proof inputs'),
+      true,
+    );
+  });
+
+  function makeBaseParityJob(): { job: ProvingJob; time: number; inputs: ProvingJobInputs } {
     const time = jest.now();
     const inputs: ProvingJobInputs = { type: ProvingRequestType.BASE_PARITY, inputs: makeBaseParityInputs() };
-    const job: V2ProvingJob = {
+    const job: ProvingJob = {
       id: randomBytes(8).toString('hex') as ProvingJobId,
       blockNumber: 1,
       type: ProvingRequestType.BASE_PARITY,
-      inputs: randomBytes(8).toString('hex') as ProofUri,
+      inputsUri: randomBytes(8).toString('hex') as ProofUri,
     };
 
     return { job, time, inputs };

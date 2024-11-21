@@ -88,7 +88,7 @@ export class InlineProofIODatabase implements ProofInputOutputDatabase {
   }
 
   getProofInput(uri: ProofUri): Promise<ProvingJobInputs> {
-    const [prefix, data] = uri.split(',');
+    const [prefix, data] = uri.split(InlineProofIODatabase.SEPARATOR);
     if (prefix !== InlineProofIODatabase.PREFIX) {
       throw new Error('Invalid proof input URI: ' + prefix);
     }
@@ -99,7 +99,7 @@ export class InlineProofIODatabase implements ProofInputOutputDatabase {
   }
 
   getProofOutput(uri: ProofUri): Promise<ProvingJobResult> {
-    const [prefix, data] = uri.split(',');
+    const [prefix, data] = uri.split(InlineProofIODatabase.SEPARATOR);
     if (prefix !== InlineProofIODatabase.PREFIX) {
       throw new Error('Invalid proof output URI: ' + prefix);
     }

@@ -1,10 +1,11 @@
 import {
   ProvingError,
+  type ProvingJob,
   type ProvingJobId,
+  type ProvingJobInputs,
   type ProvingJobResultsMap,
   ProvingRequestType,
   type ServerCircuitProver,
-  type V2ProvingJob,
 } from '@aztec/circuit-types';
 import { randomBytes } from '@aztec/foundation/crypto';
 import { createDebugLogger } from '@aztec/foundation/log';
@@ -61,7 +62,7 @@ export class ProvingAgent {
       // (1) either do a heartbeat, telling the broker that we're working
       // (2) get a new job
       // If during (1) the broker returns a new job that means we can cancel the current job and start the new one
-      let maybeJob: { job: V2ProvingJob; time: number } | undefined;
+      let maybeJob: { job: ProvingJob; time: number } | undefined;
       if (this.currentJobController?.getStatus() === ProvingJobControllerStatus.PROVING) {
         maybeJob = await this.jobSource.reportProvingJobProgress(
           this.currentJobController.getJobId(),
@@ -85,7 +86,13 @@ export class ProvingAgent {
       }
 
       const { job, time } = maybeJob;
-      const inputs = await this.proofInputOutputDatabase.getProofInput(job.inputs);
+      let inputs: ProvingJobInputs;
+      try {
+        inputs = await this.proofInputOutputDatabase.getProofInput(job.inputsUri);
+      } catch (err) {
+        await this.jobSource.reportProvingJobError(job.id, new Error('Failed to load proof inputs'), true);
+        return;
+      }
 
       this.currentJobController = new ProvingJobController(
         job.id,
@@ -98,13 +105,13 @@ export class ProvingAgent {
       if (abortedProofJobId) {
         this.log.info(
           `Aborting job id=${abortedProofJobId} type=${abortedProofName} to start new job id=${this.currentJobController.getJobId()} type=${this.currentJobController.getProofTypeName()} inputsUri=${truncateString(
-            job.inputs,
+            job.inputsUri,
           )}`,
         );
       } else {
         this.log.info(
           `Starting job id=${this.currentJobController.getJobId()} type=${this.currentJobController.getProofTypeName()} inputsUri=${truncateString(
-            job.inputs,
+            job.inputsUri,
           )}`,
         );
       }

@@ -2,20 +2,14 @@ import { type ApiSchemaFor } from '@aztec/foundation/schemas';
 
 import { z } from 'zod';
 
-import {
-  type ProvingJob,
-  ProvingJobId,
-  type ProvingJobInputs,
-  ProvingJobResult,
-  ProvingJobSchema,
-} from './proving-job.js';
+import { ProvingJob, ProvingJobId, ProvingJobResult } from './proving-job.js';
 
 export interface ProvingJobSource {
   /**
    * Gets the next proving job. `heartbeat` must be called periodically to keep the job alive.
    * @returns The proving job, or undefined if there are no jobs available.
    */
-  getProvingJob(): Promise<ProvingJob<ProvingJobInputs> | undefined>;
+  getProvingJob(): Promise<ProvingJob | undefined>;
 
   /**
    * Keeps the job alive. If this isn't called regularly then the job will be
@@ -40,7 +34,7 @@ export interface ProvingJobSource {
 }
 
 export const ProvingJobSourceSchema: ApiSchemaFor<ProvingJobSource> = {
-  getProvingJob: z.function().args().returns(ProvingJobSchema.optional()),
+  getProvingJob: z.function().args().returns(ProvingJob.optional()),
   heartbeat: z.function().args(ProvingJobId).returns(z.void()),
   resolveProvingJob: z.function().args(ProvingJobId, ProvingJobResult).returns(z.void()),
   rejectProvingJob: z.function().args(ProvingJobId, z.string()).returns(z.void()),

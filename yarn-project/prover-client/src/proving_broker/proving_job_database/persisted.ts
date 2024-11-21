@@ -1,4 +1,4 @@
-import { type ProofUri, type ProvingJobId, V2ProvingJob, V2ProvingJobResult } from '@aztec/circuit-types';
+import { type ProofUri, ProvingJob, type ProvingJobId } from '@aztec/circuit-types';
 import { type AztecKVStore, type AztecMap } from '@aztec/kv-store';
 
 import { type ProvingJobDatabase } from '../proving_job_database.js';
@@ -12,15 +12,15 @@ export class PersistedProvingJobDatabase implements ProvingJobDatabase {
     this.jobResults = store.openMap('proving_job_results');
   }
 
-  async addProvingJob(job: V2ProvingJob): Promise<void> {
+  async addProvingJob(job: ProvingJob): Promise<void> {
     await this.jobs.set(job.id, JSON.stringify(job));
   }
 
-  *allProvingJobs(): Iterable<[V2ProvingJob, V2ProvingJobResult | undefined]> {
+  *allProvingJobs(): Iterable<[ProvingJob, { value: ProofUri } | { error: string } | undefined]> {
     for (const jobStr of this.jobs.values()) {
-      const job = V2ProvingJob.parse(JSON.parse(jobStr));
+      const job = ProvingJob.parse(JSON.parse(jobStr));
       const resultStr = this.jobResults.get(job.id);
-      const result = resultStr ? V2ProvingJobResult.parse(JSON.parse(resultStr)) : undefined;
+      const result = resultStr ? JSON.parse(resultStr) : undefined;
       yield [job, result];
     }
   }
@@ -33,12 +33,10 @@ export class PersistedProvingJobDatabase implements ProvingJobDatabase {
   }
 
   async setProvingJobError(id: ProvingJobId, err: Error): Promise<void> {
-    const res: V2ProvingJobResult = { error: err.message };
-    await this.jobResults.set(id, JSON.stringify(res));
+    await this.jobResults.set(id, JSON.stringify({ error: err.message }));
   }
 
   async setProvingJobResult(id: ProvingJobId, value: ProofUri): Promise<void> {
-    const res: V2ProvingJobResult = { value };
-    await this.jobResults.set(id, JSON.stringify(res));
+    await this.jobResults.set(id, JSON.stringify({ value }));
   }
 }

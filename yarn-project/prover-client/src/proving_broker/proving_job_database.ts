@@ -1,4 +1,4 @@
-import { type ProofUri, type ProvingJobId, type V2ProvingJob, type V2ProvingJobResult } from '@aztec/circuit-types';
+import { type ProofUri, type ProvingJob, type ProvingJobId } from '@aztec/circuit-types';
 
 /**
  * A database for storing proof requests and their results
@@ -8,7 +8,7 @@ export interface ProvingJobDatabase {
    * Saves a proof request so it can be retrieved later
    * @param request - The proof request to save
    */
-  addProvingJob(request: V2ProvingJob): Promise<void>;
+  addProvingJob(request: ProvingJob): Promise<void>;
 
   /**
    * Removes a proof request from the backend
@@ -19,7 +19,7 @@ export interface ProvingJobDatabase {
   /**
    * Returns an iterator over all saved proving jobs
    */
-  allProvingJobs(): Iterable<[V2ProvingJob, V2ProvingJobResult | undefined]>;
+  allProvingJobs(): Iterable<[ProvingJob, { value: ProofUri } | { error: string } | undefined]>;
 
   /**
    * Saves the result of a proof request
