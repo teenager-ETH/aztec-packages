@@ -1,7 +1,7 @@
 import {
+  type ProofInputsUri,
   type ProvingJobId,
   ProvingRequestType,
-  type V2ProofInputUri,
   type V2ProofOutputUri,
   type V2ProvingJob,
 } from '@aztec/circuit-types';
@@ -1047,8 +1047,8 @@ function makeProvingJobId(): ProvingJobId {
   return randomBytes(8).toString('hex') as ProvingJobId;
 }
 
-function makeInputsUri(): V2ProofInputUri {
-  return randomBytes(8).toString('hex') as V2ProofInputUri;
+function makeInputsUri(): ProofInputsUri {
+  return randomBytes(8).toString('hex') as ProofInputsUri;
 }
 
 function makeOutputsUri(): V2ProofOutputUri {

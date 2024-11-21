@@ -9,8 +9,8 @@ import { type JsonRpcTestContext, createJsonRpcTestSetup } from '@aztec/foundati
 
 import { type ProvingJobSource, ProvingJobSourceSchema } from './proving-job-source.js';
 import {
+  type ProofInputs,
   type ProvingJob,
-  type ProvingRequest,
   type ProvingRequestResult,
   type ProvingRequestResultFor,
   ProvingRequestType,
@@ -66,7 +66,7 @@ describe('ProvingJobSourceSchema', () => {
 });
 
 class MockProvingJobSource implements ProvingJobSource {
-  getProvingJob(): Promise<ProvingJob<ProvingRequest> | undefined> {
+  getProvingJob(): Promise<ProvingJob<ProofInputs> | undefined> {
     return Promise.resolve({
       id: 'a-job-id',
       request: { type: ProvingRequestType.PRIVATE_BASE_ROLLUP, inputs: PrivateBaseRollupInputs.empty() },

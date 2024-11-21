@@ -126,14 +126,12 @@ export function mapProvingRequestTypeToCircuitName(type: ProvingRequestType): Ci
 
 export type AvmProvingRequest = z.infer<typeof AvmProvingRequestSchema>;
 
-export type ProvingRequest = z.infer<typeof ProvingRequestSchema>;
-
 export const AvmProvingRequestSchema = z.object({
   type: z.literal(ProvingRequestType.PUBLIC_VM),
   inputs: AvmCircuitInputs.schema,
 });
 
-export const ProvingRequestSchema = z.discriminatedUnion('type', [
+export const ProofInputs = z.discriminatedUnion('type', [
   AvmProvingRequestSchema,
   z.object({ type: z.literal(ProvingRequestType.BASE_PARITY), inputs: BaseParityInputs.schema }),
   z.object({ type: z.literal(ProvingRequestType.ROOT_PARITY), inputs: RootParityInputs.schema }),
@@ -148,13 +146,15 @@ export const ProvingRequestSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal(ProvingRequestType.TUBE_PROOF), inputs: TubeInputs.schema }),
 ]);
 
+export type ProofInputs = z.infer<typeof ProofInputs>;
+
 export const ProvingJobId = z.string();
 
 export type ProvingJobId = z.infer<typeof ProvingJobId>;
 
-export type ProvingJob<T extends ProvingRequest> = { id: ProvingJobId; request: T };
+export type ProvingJob<T extends ProofInputs> = { id: ProvingJobId; request: T };
 
-export const ProvingJobSchema = z.object({ id: ProvingJobId, request: ProvingRequestSchema });
+export const ProvingJobSchema = z.object({ id: ProvingJobId, request: ProofInputs });
 
 type ProvingRequestResultsMap = {
   [ProvingRequestType.PRIVATE_KERNEL_EMPTY]: PublicInputsAndRecursiveProof<KernelCircuitPublicInputs>;
@@ -238,67 +238,14 @@ export const ProvingRequestResultSchema = z.discriminatedUnion('type', [
   }),
 ]) satisfies ZodFor<ProvingRequestResult>;
 
-export const V2ProofInput = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal(ProvingRequestType.PUBLIC_VM),
-    value: AvmCircuitInputs.schema,
-  }),
-  z.object({
-    type: z.literal(ProvingRequestType.BASE_PARITY),
-    value: BaseParityInputs.schema,
-  }),
-  z.object({
-    type: z.literal(ProvingRequestType.ROOT_PARITY),
-    value: RootParityInputs.schema,
-  }),
-  z.object({
-    type: z.literal(ProvingRequestType.PRIVATE_BASE_ROLLUP),
-    value: PrivateBaseRollupInputs.schema,
-  }),
-  z.object({
-    type: z.literal(ProvingRequestType.PUBLIC_BASE_ROLLUP),
-    value: PublicBaseRollupInputs.schema,
-  }),
-  z.object({
-    type: z.literal(ProvingRequestType.MERGE_ROLLUP),
-    value: MergeRollupInputs.schema,
-  }),
-  z.object({
-    type: z.literal(ProvingRequestType.BLOCK_ROOT_ROLLUP),
-    value: BlockRootRollupInputs.schema,
-  }),
-  z.object({
-    type: z.literal(ProvingRequestType.EMPTY_BLOCK_ROOT_ROLLUP),
-    value: EmptyBlockRootRollupInputs.schema,
-  }),
-  z.object({
-    type: z.literal(ProvingRequestType.BLOCK_MERGE_ROLLUP),
-    value: BlockMergeRollupInputs.schema,
-  }),
-  z.object({
-    type: z.literal(ProvingRequestType.ROOT_ROLLUP),
-    value: RootRollupInputs.schema,
-  }),
-  z.object({
-    type: z.literal(ProvingRequestType.PRIVATE_KERNEL_EMPTY),
-    value: PrivateKernelEmptyInputData.schema,
-  }),
-  z.object({
-    type: z.literal(ProvingRequestType.TUBE_PROOF),
-    value: TubeInputs.schema,
-  }),
-]);
-
-export type V2ProofInput = z.infer<typeof V2ProofInput>;
-
-export const V2ProofInputUri = z.string().brand('ProofInputUri');
-export type V2ProofInputUri = z.infer<typeof V2ProofInputUri>;
+export const ProofInputsUri = z.string().brand('ProofInputUri');
+export type ProofInputsUri = z.infer<typeof ProofInputsUri>;
 
 export const V2ProvingJob = z.object({
   id: ProvingJobId,
   blockNumber: z.number(),
   type: z.nativeEnum(ProvingRequestType),
-  inputs: V2ProofInputUri,
+  inputs: ProofInputsUri,
 });
 
 export type V2ProvingJob = z.infer<typeof V2ProvingJob>;
@@ -359,7 +306,7 @@ export type V2ProofOutput = z.infer<typeof V2ProofOutput>;
 export const V2ProofOutputUri = z.string().brand('ProofOutputUri');
 export type V2ProofOutputUri = z.infer<typeof V2ProofOutputUri>;
 
-export type V2ProofInputsByType = {
+export type ProofInputssByType = {
   [ProvingRequestType.PRIVATE_KERNEL_EMPTY]: PrivateKernelEmptyInputData;
   [ProvingRequestType.PUBLIC_VM]: AvmCircuitInputs;
   [ProvingRequestType.PRIVATE_BASE_ROLLUP]: PrivateBaseRollupInputs;

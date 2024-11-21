@@ -20,7 +20,7 @@ describe('ProvingJobController', () => {
       '1' as ProvingJobId,
       {
         type: ProvingRequestType.BASE_PARITY,
-        value: makeBaseParityInputs(),
+        inputs: makeBaseParityInputs(),
       },
       0,
       prover,

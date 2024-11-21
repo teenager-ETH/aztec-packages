@@ -1,10 +1,10 @@
 import {
+  type ProofInputs,
+  type ProofInputsUri,
   ProvingError,
   type ProvingJobId,
   ProvingRequestType,
   type PublicInputsAndRecursiveProof,
-  type V2ProofInput,
-  type V2ProofInputUri,
   type V2ProofOutputUri,
   type V2ProvingJob,
   makePublicInputsAndRecursiveProof,
@@ -223,14 +223,14 @@ describe('ProvingAgent', () => {
     secondProof.resolve(makeBaseParityResult().value);
   });
 
-  function makeBaseParityJob(): { job: V2ProvingJob; time: number; inputs: V2ProofInput } {
+  function makeBaseParityJob(): { job: V2ProvingJob; time: number; inputs: ProofInputs } {
     const time = jest.now();
-    const inputs: V2ProofInput = { type: ProvingRequestType.BASE_PARITY, value: makeBaseParityInputs() };
+    const inputs: ProofInputs = { type: ProvingRequestType.BASE_PARITY, inputs: makeBaseParityInputs() };
     const job: V2ProvingJob = {
       id: randomBytes(8).toString('hex') as ProvingJobId,
       blockNumber: 1,
       type: ProvingRequestType.BASE_PARITY,
-      inputs: randomBytes(8).toString('hex') as V2ProofInputUri,
+      inputs: randomBytes(8).toString('hex') as ProofInputsUri,
     };
 
     return { job, time, inputs };

@@ -1,8 +1,8 @@
 import {
+  type ProofInputs,
   type ProvingJobId,
   ProvingRequestType,
   type ServerCircuitProver,
-  type V2ProofInput,
   type V2ProofOutput,
 } from '@aztec/circuit-types';
 
@@ -26,7 +26,7 @@ export class ProvingJobController {
 
   constructor(
     private jobId: ProvingJobId,
-    private inputs: V2ProofInput,
+    private inputs: ProofInputs,
     private startedAt: number,
     private circuitProver: ServerCircuitProver,
     private onComplete: ProvingJobCompletionCallback,
@@ -83,7 +83,7 @@ export class ProvingJobController {
   }
 
   private async generateProof(): Promise<V2ProofOutput> {
-    const { type, value: inputs } = this.inputs;
+    const { type, inputs } = this.inputs;
     const signal = this.abortController.signal;
     switch (type) {
       case ProvingRequestType.PUBLIC_VM: {

@@ -1,8 +1,8 @@
 import {
+  type ProofInputs,
   type ProverAgentApi,
   type ProvingJob,
   type ProvingJobSource,
-  type ProvingRequest,
   type ProvingRequestResultFor,
   ProvingRequestType,
   type ServerCircuitProver,
@@ -130,7 +130,7 @@ export class ProverAgent implements ProverAgentApi {
     this.log.info('Agent stopped');
   }
 
-  private async work<TRequest extends ProvingRequest>(
+  private async work<TRequest extends ProofInputs>(
     jobSource: ProvingJobSource,
     job: ProvingJob<TRequest>,
   ): Promise<void> {
@@ -164,10 +164,10 @@ export class ProverAgent implements ProverAgentApi {
     }
   }
 
-  private getProof<TRequest extends ProvingRequest>(
+  private getProof<TRequest extends ProofInputs>(
     request: TRequest,
   ): Promise<ProvingRequestResultFor<TRequest['type']>['result']>;
-  private getProof(request: ProvingRequest): Promise<ProvingRequestResultFor<typeof type>['result']> {
+  private getProof(request: ProofInputs): Promise<ProvingRequestResultFor<typeof type>['result']> {
     const { type, inputs } = request;
     switch (type) {
       case ProvingRequestType.PUBLIC_VM: {

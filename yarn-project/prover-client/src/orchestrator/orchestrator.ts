@@ -10,10 +10,10 @@ import {
   type EpochProver,
   type MerkleTreeWriteOperations,
   type ProofAndVerificationKey,
+  type ProofInputssByType,
   type ProverCache,
   ProvingRequestType,
   type ServerCircuitProver,
-  type V2ProofInputsByType,
   type V2ProofOutputByType,
 } from '@aztec/circuit-types/interfaces';
 import {
@@ -625,7 +625,7 @@ export class ProvingOrchestrator implements EpochProver {
     provingState: EpochProvingState | BlockProvingState | undefined,
     jobId: string,
     type: T,
-    inputs: V2ProofInputsByType[T],
+    inputs: ProofInputssByType[T],
     callback: (result: V2ProofOutputByType[T]) => void | Promise<void>,
   ) {
     if (!provingState?.verifyState()) {

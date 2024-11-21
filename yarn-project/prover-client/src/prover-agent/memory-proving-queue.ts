@@ -1,8 +1,8 @@
 import {
   type ProofAndVerificationKey,
+  type ProofInputs,
   type ProvingJob,
   type ProvingJobSource,
-  type ProvingRequest,
   type ProvingRequestResultFor,
   ProvingRequestType,
   type PublicInputsAndRecursiveProof,
@@ -40,7 +40,7 @@ import { type TelemetryClient } from '@aztec/telemetry-client';
 
 import { ProvingQueueMetrics } from './queue_metrics.js';
 
-type ProvingJobWithResolvers<T extends ProvingRequest = ProvingRequest> = ProvingJob<T> &
+type ProvingJobWithResolvers<T extends ProofInputs = ProofInputs> = ProvingJob<T> &
   PromiseWithResolvers<ProvingRequestResultFor<T['type']>> & {
     signal?: AbortSignal;
     epochNumber?: number;
@@ -100,7 +100,7 @@ export class MemoryProvingQueue implements ServerCircuitProver, ProvingJobSource
     this.log.info('Proving queue stopped');
   }
 
-  public async getProvingJob({ timeoutSec = 1 } = {}): Promise<ProvingJob<ProvingRequest> | undefined> {
+  public async getProvingJob({ timeoutSec = 1 } = {}): Promise<ProvingJob<ProofInputs> | undefined> {
     if (!this.runningPromise.isRunning()) {
       throw new Error('Proving queue is not running. Start the queue before getting jobs.');
     }
@@ -223,7 +223,7 @@ export class MemoryProvingQueue implements ServerCircuitProver, ProvingJobSource
     }
   };
 
-  private enqueue<T extends ProvingRequest>(
+  private enqueue<T extends ProofInputs>(
     request: T,
     signal?: AbortSignal,
     epochNumber?: number,
