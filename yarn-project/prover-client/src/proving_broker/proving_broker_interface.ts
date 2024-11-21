@@ -1,9 +1,9 @@
 import {
   type ProofOutputsUri,
   type ProvingJobId,
+  type ProvingJobStatus,
   type ProvingRequestType,
   type V2ProvingJob,
-  type V2ProvingJobStatus,
 } from '@aztec/circuit-types';
 
 /**
@@ -26,7 +26,7 @@ export interface ProvingJobProducer {
    * Returns the current status fof the proving job
    * @param id - The ID of the job to get the status of
    */
-  getProvingJobStatus(id: ProvingJobId): Promise<V2ProvingJobStatus>;
+  getProvingJobStatus(id: ProvingJobId): Promise<ProvingJobStatus>;
 }
 
 export interface ProvingJobFilter<T extends ProvingRequestType[]> {

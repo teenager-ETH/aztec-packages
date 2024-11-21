@@ -1,10 +1,10 @@
 import {
   type ProofOutputsUri,
   type ProvingJobId,
+  type ProvingJobStatus,
   ProvingRequestType,
   type V2ProvingJob,
   type V2ProvingJobResult,
-  type V2ProvingJobStatus,
 } from '@aztec/circuit-types';
 import { createDebugLogger } from '@aztec/foundation/log';
 import { RunningPromise } from '@aztec/foundation/promise';
@@ -124,7 +124,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
   }
 
   // eslint-disable-next-line require-await
-  public async getProvingJobStatus(id: ProvingJobId): Promise<V2ProvingJobStatus> {
+  public async getProvingJobStatus(id: ProvingJobId): Promise<ProvingJobStatus> {
     const result = this.resultsCache.get(id);
     if (!result) {
       // no result yet, check if we know the item

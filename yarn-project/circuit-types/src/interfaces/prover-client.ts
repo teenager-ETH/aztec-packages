@@ -8,6 +8,7 @@ import { type TxHash } from '../tx/tx_hash.js';
 import { type EpochProver } from './epoch-prover.js';
 import { type MerkleTreeReadOperations } from './merkle_tree_operations.js';
 import { type ProvingJobSource } from './proving-job-source.js';
+import { type ProvingJobStatus } from './proving-job.js';
 
 /**
  * The prover configuration.
@@ -104,9 +105,6 @@ export const proverConfigMappings: ConfigMappingsType<ProverConfig> = {
 function parseProverId(str: string) {
   return Fr.fromString(str.startsWith('0x') ? str : Buffer.from(str, 'utf8').toString('hex'));
 }
-
-/** The status of a proving job */
-export type ProvingJobStatus = { status: 'in-progress' } | { status: 'resolved'; value: any };
 
 /**
  * A database where the proving orchestrator can store intermediate results

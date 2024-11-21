@@ -145,8 +145,21 @@ export const ProvingJobInputs = z.discriminatedUnion('type', [
   z.object({ type: z.literal(ProvingRequestType.PRIVATE_KERNEL_EMPTY), inputs: PrivateKernelEmptyInputData.schema }),
   z.object({ type: z.literal(ProvingRequestType.TUBE_PROOF), inputs: TubeInputs.schema }),
 ]);
-
 export type ProvingJobInputs = z.infer<typeof ProvingJobInputs>;
+export type ProvingJobInputsMap = {
+  [ProvingRequestType.PRIVATE_KERNEL_EMPTY]: PrivateKernelEmptyInputData;
+  [ProvingRequestType.PUBLIC_VM]: AvmCircuitInputs;
+  [ProvingRequestType.PRIVATE_BASE_ROLLUP]: PrivateBaseRollupInputs;
+  [ProvingRequestType.PUBLIC_BASE_ROLLUP]: PublicBaseRollupInputs;
+  [ProvingRequestType.MERGE_ROLLUP]: MergeRollupInputs;
+  [ProvingRequestType.EMPTY_BLOCK_ROOT_ROLLUP]: EmptyBlockRootRollupInputs;
+  [ProvingRequestType.BLOCK_ROOT_ROLLUP]: BlockRootRollupInputs;
+  [ProvingRequestType.BLOCK_MERGE_ROLLUP]: BlockMergeRollupInputs;
+  [ProvingRequestType.ROOT_ROLLUP]: RootRollupInputs;
+  [ProvingRequestType.BASE_PARITY]: BaseParityInputs;
+  [ProvingRequestType.ROOT_PARITY]: RootParityInputs;
+  [ProvingRequestType.TUBE_PROOF]: TubeInputs;
+};
 
 export const ProvingJobResult = z.discriminatedUnion('type', [
   z.object({
@@ -198,17 +211,7 @@ export const ProvingJobResult = z.discriminatedUnion('type', [
     result: schemaForRecursiveProofAndVerificationKey(TUBE_PROOF_LENGTH),
   }),
 ]);
-
 export type ProvingJobResult = z.infer<typeof ProvingJobResult>;
-
-export const ProvingJobId = z.string();
-
-export type ProvingJobId = z.infer<typeof ProvingJobId>;
-
-export type ProvingJob<T extends ProvingJobInputs> = { id: ProvingJobId; request: T };
-
-export const ProvingJobSchema = z.object({ id: ProvingJobId, request: ProvingJobInputs });
-
 export type ProvingJobResultsMap = {
   [ProvingRequestType.PRIVATE_KERNEL_EMPTY]: PublicInputsAndRecursiveProof<KernelCircuitPublicInputs>;
   [ProvingRequestType.PUBLIC_VM]: ProofAndVerificationKey<typeof AVM_PROOF_LENGTH_IN_FIELDS>;
@@ -228,6 +231,11 @@ export type ProvingJobResultsMap = {
 };
 
 export type ProvingRequestResultFor<T extends ProvingRequestType> = { type: T; result: ProvingJobResultsMap[T] };
+
+export const ProvingJobId = z.string();
+export type ProvingJobId = z.infer<typeof ProvingJobId>;
+export type ProvingJob<T extends ProvingJobInputs> = { id: ProvingJobId; request: T };
+export const ProvingJobSchema = z.object({ id: ProvingJobId, request: ProvingJobInputs });
 
 export function makeProvingRequestResult(
   type: ProvingRequestType,
@@ -251,29 +259,14 @@ export type V2ProvingJob = z.infer<typeof V2ProvingJob>;
 export const ProofOutputsUri = z.string().brand('ProofOutputUri');
 export type ProofOutputsUri = z.infer<typeof ProofOutputsUri>;
 
-export type ProvingJobInputsMap = {
-  [ProvingRequestType.PRIVATE_KERNEL_EMPTY]: PrivateKernelEmptyInputData;
-  [ProvingRequestType.PUBLIC_VM]: AvmCircuitInputs;
-  [ProvingRequestType.PRIVATE_BASE_ROLLUP]: PrivateBaseRollupInputs;
-  [ProvingRequestType.PUBLIC_BASE_ROLLUP]: PublicBaseRollupInputs;
-  [ProvingRequestType.MERGE_ROLLUP]: MergeRollupInputs;
-  [ProvingRequestType.EMPTY_BLOCK_ROOT_ROLLUP]: EmptyBlockRootRollupInputs;
-  [ProvingRequestType.BLOCK_ROOT_ROLLUP]: BlockRootRollupInputs;
-  [ProvingRequestType.BLOCK_MERGE_ROLLUP]: BlockMergeRollupInputs;
-  [ProvingRequestType.ROOT_ROLLUP]: RootRollupInputs;
-  [ProvingRequestType.BASE_PARITY]: BaseParityInputs;
-  [ProvingRequestType.ROOT_PARITY]: RootParityInputs;
-  [ProvingRequestType.TUBE_PROOF]: TubeInputs;
-};
-
-export const V2ProvingJobStatus = z.discriminatedUnion('status', [
+export const ProvingJobStatus = z.discriminatedUnion('status', [
   z.object({ status: z.literal('in-queue') }),
   z.object({ status: z.literal('in-progress') }),
   z.object({ status: z.literal('not-found') }),
   z.object({ status: z.literal('resolved'), value: ProofOutputsUri }),
   z.object({ status: z.literal('rejected'), error: z.string() }),
 ]);
-export type V2ProvingJobStatus = z.infer<typeof V2ProvingJobStatus>;
+export type ProvingJobStatus = z.infer<typeof ProvingJobStatus>;
 
 export const V2ProvingJobResult = z.union([z.object({ value: ProofOutputsUri }), z.object({ error: z.string() })]);
 export type V2ProvingJobResult = z.infer<typeof V2ProvingJobResult>;
