@@ -1,9 +1,8 @@
 import {
-  type ProofOutputsUri,
+  type ProofUri,
   ProvingError,
   type ProvingJobId,
   type ProvingJobInputs,
-  type ProvingJobInputsUri,
   ProvingRequestType,
   type PublicInputsAndRecursiveProof,
   type V2ProvingJob,
@@ -105,7 +104,7 @@ describe('ProvingAgent', () => {
 
     jobSource.getProvingJob.mockResolvedValueOnce({ job, time });
     proofDB.getProofInput.mockResolvedValueOnce(inputs);
-    proofDB.saveProofOutput.mockResolvedValueOnce('output-uri' as ProofOutputsUri);
+    proofDB.saveProofOutput.mockResolvedValueOnce('output-uri' as ProofUri);
 
     agent.start();
 
@@ -230,7 +229,7 @@ describe('ProvingAgent', () => {
       id: randomBytes(8).toString('hex') as ProvingJobId,
       blockNumber: 1,
       type: ProvingRequestType.BASE_PARITY,
-      inputs: randomBytes(8).toString('hex') as ProvingJobInputsUri,
+      inputs: randomBytes(8).toString('hex') as ProofUri,
     };
 
     return { job, time, inputs };

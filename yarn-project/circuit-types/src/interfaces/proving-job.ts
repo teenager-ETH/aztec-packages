@@ -244,29 +244,26 @@ export function makeProvingRequestResult(
   return { type, result } as ProvingJobResult;
 }
 
-export const ProvingJobInputsUri = z.string().brand('ProofInputUri');
-export type ProvingJobInputsUri = z.infer<typeof ProvingJobInputsUri>;
+export const ProofUri = z.string().brand('ProvingJobUri');
+export type ProofUri = z.infer<typeof ProofUri>;
 
 export const V2ProvingJob = z.object({
   id: ProvingJobId,
   blockNumber: z.number(),
   type: z.nativeEnum(ProvingRequestType),
-  inputs: ProvingJobInputsUri,
+  inputs: ProofUri,
 });
 
 export type V2ProvingJob = z.infer<typeof V2ProvingJob>;
-
-export const ProofOutputsUri = z.string().brand('ProofOutputUri');
-export type ProofOutputsUri = z.infer<typeof ProofOutputsUri>;
 
 export const ProvingJobStatus = z.discriminatedUnion('status', [
   z.object({ status: z.literal('in-queue') }),
   z.object({ status: z.literal('in-progress') }),
   z.object({ status: z.literal('not-found') }),
-  z.object({ status: z.literal('resolved'), value: ProofOutputsUri }),
+  z.object({ status: z.literal('resolved'), value: ProofUri }),
   z.object({ status: z.literal('rejected'), error: z.string() }),
 ]);
 export type ProvingJobStatus = z.infer<typeof ProvingJobStatus>;
 
-export const V2ProvingJobResult = z.union([z.object({ value: ProofOutputsUri }), z.object({ error: z.string() })]);
+export const V2ProvingJobResult = z.union([z.object({ value: ProofUri }), z.object({ error: z.string() })]);
 export type V2ProvingJobResult = z.infer<typeof V2ProvingJobResult>;

@@ -1,5 +1,5 @@
 import {
-  type ProofOutputsUri,
+  type ProofUri,
   type ProvingJobId,
   type ProvingJobStatus,
   type ProvingRequestType,
@@ -50,7 +50,7 @@ export interface ProvingJobConsumer {
    * @param id - The ID of the job to report success for
    * @param result - The result of the job
    */
-  reportProvingJobSuccess(id: ProvingJobId, result: ProofOutputsUri): Promise<void>;
+  reportProvingJobSuccess(id: ProvingJobId, result: ProofUri): Promise<void>;
 
   /**
    * Marks a proving job as errored

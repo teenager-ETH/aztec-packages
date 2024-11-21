@@ -1,8 +1,7 @@
 import {
-  type ProofOutputsUri,
+  type ProofUri,
   type ProvingJobId,
   ProvingJobInputs,
-  type ProvingJobInputsUri,
   ProvingJobResult,
   type ProvingRequestType,
 } from '@aztec/circuit-types';
@@ -18,11 +17,7 @@ export interface ProofInputOutputDatabase {
    * @param proofInput - The proof input to save.
    * @returns The URI of the saved proof input.
    */
-  saveProofInput(
-    jobId: ProvingJobId,
-    type: ProvingRequestType,
-    proofInput: ProvingJobInputs,
-  ): Promise<ProvingJobInputsUri>;
+  saveProofInput(jobId: ProvingJobId, type: ProvingRequestType, proofInput: ProvingJobInputs): Promise<ProofUri>;
 
   /**
    * Save a proof output to the database.
@@ -31,25 +26,21 @@ export interface ProofInputOutputDatabase {
    * @param proofOutput - The proof output to save.
    * @returns The URI of the saved proof output.
    */
-  saveProofOutput(
-    jobId: ProvingJobId,
-    type: ProvingRequestType,
-    proofOutput: ProvingJobResult,
-  ): Promise<ProofOutputsUri>;
+  saveProofOutput(jobId: ProvingJobId, type: ProvingRequestType, proofOutput: ProvingJobResult): Promise<ProofUri>;
 
   /**
    * Retrieve a proof input from the database.
    * @param uri - The URI of the proof input to retrieve.
    * @returns The proof input.
    */
-  getProofInput(uri: ProvingJobInputsUri): Promise<ProvingJobInputs>;
+  getProofInput(uri: ProofUri): Promise<ProvingJobInputs>;
 
   /**
    * Retrieve a proof output from the database.
    * @param uri - The URI of the proof output to retrieve.
    * @returns The proof output.
    */
-  getProofOutput(uri: ProofOutputsUri): Promise<ProvingJobResult>;
+  getProofOutput(uri: ProofUri): Promise<ProvingJobResult>;
 }
 
 /**
@@ -60,31 +51,23 @@ export class InlineProofIODatabase implements ProofInputOutputDatabase {
   private static readonly SEPARATOR = ',';
   private static readonly BUFFER_ENCODING = 'base64url';
 
-  saveProofInput(
-    _id: ProvingJobId,
-    _type: ProvingRequestType,
-    proofInput: ProvingJobInputs,
-  ): Promise<ProvingJobInputsUri> {
+  saveProofInput(_id: ProvingJobId, _type: ProvingRequestType, proofInput: ProvingJobInputs): Promise<ProofUri> {
     return Promise.resolve(
       (InlineProofIODatabase.PREFIX +
         InlineProofIODatabase.SEPARATOR +
-        Buffer.from(JSON.stringify(proofInput)).toString(InlineProofIODatabase.BUFFER_ENCODING)) as ProvingJobInputsUri,
+        Buffer.from(JSON.stringify(proofInput)).toString(InlineProofIODatabase.BUFFER_ENCODING)) as ProofUri,
     );
   }
 
-  saveProofOutput(
-    _id: ProvingJobId,
-    _type: ProvingRequestType,
-    proofOutput: ProvingJobResult,
-  ): Promise<ProofOutputsUri> {
+  saveProofOutput(_id: ProvingJobId, _type: ProvingRequestType, proofOutput: ProvingJobResult): Promise<ProofUri> {
     return Promise.resolve(
       (InlineProofIODatabase.PREFIX +
         InlineProofIODatabase.SEPARATOR +
-        Buffer.from(JSON.stringify(proofOutput)).toString(InlineProofIODatabase.BUFFER_ENCODING)) as ProofOutputsUri,
+        Buffer.from(JSON.stringify(proofOutput)).toString(InlineProofIODatabase.BUFFER_ENCODING)) as ProofUri,
     );
   }
 
-  getProofInput(uri: ProvingJobInputsUri): Promise<ProvingJobInputs> {
+  getProofInput(uri: ProofUri): Promise<ProvingJobInputs> {
     const [prefix, data] = uri.split(',');
     if (prefix !== InlineProofIODatabase.PREFIX) {
       throw new Error('Invalid proof input URI: ' + prefix);
@@ -95,7 +78,7 @@ export class InlineProofIODatabase implements ProofInputOutputDatabase {
     );
   }
 
-  getProofOutput(uri: ProofOutputsUri): Promise<ProvingJobResult> {
+  getProofOutput(uri: ProofUri): Promise<ProvingJobResult> {
     const [prefix, data] = uri.split(',');
     if (prefix !== InlineProofIODatabase.PREFIX) {
       throw new Error('Invalid proof output URI: ' + prefix);

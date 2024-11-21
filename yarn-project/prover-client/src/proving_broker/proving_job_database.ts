@@ -1,9 +1,4 @@
-import {
-  type ProofOutputsUri,
-  type ProvingJobId,
-  type V2ProvingJob,
-  type V2ProvingJobResult,
-} from '@aztec/circuit-types';
+import { type ProofUri, type ProvingJobId, type V2ProvingJob, type V2ProvingJobResult } from '@aztec/circuit-types';
 
 /**
  * A database for storing proof requests and their results
@@ -32,7 +27,7 @@ export interface ProvingJobDatabase {
    * @param ProvingRequestType - The type of proof that was requested
    * @param value - The result of the proof request
    */
-  setProvingJobResult(id: ProvingJobId, value: ProofOutputsUri): Promise<void>;
+  setProvingJobResult(id: ProvingJobId, value: ProofUri): Promise<void>;
 
   /**
    * Saves an error that occurred while processing a proof request

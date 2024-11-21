@@ -1,10 +1,4 @@
-import {
-  type ProofOutputsUri,
-  type ProvingJobId,
-  type ProvingJobInputsUri,
-  ProvingRequestType,
-  type V2ProvingJob,
-} from '@aztec/circuit-types';
+import { type ProofUri, type ProvingJobId, ProvingRequestType, type V2ProvingJob } from '@aztec/circuit-types';
 import { randomBytes } from '@aztec/foundation/crypto';
 import { openTmpStore } from '@aztec/kv-store/utils';
 
@@ -1047,10 +1041,10 @@ function makeProvingJobId(): ProvingJobId {
   return randomBytes(8).toString('hex') as ProvingJobId;
 }
 
-function makeInputsUri(): ProvingJobInputsUri {
-  return randomBytes(8).toString('hex') as ProvingJobInputsUri;
+function makeInputsUri(): ProofUri {
+  return randomBytes(8).toString('hex') as ProofUri;
 }
 
-function makeOutputsUri(): ProofOutputsUri {
-  return randomBytes(8).toString('hex') as ProofOutputsUri;
+function makeOutputsUri(): ProofUri {
+  return randomBytes(8).toString('hex') as ProofUri;
 }
