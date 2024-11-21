@@ -1,11 +1,11 @@
 import {
   type ProofInputs,
   type ProofInputsUri,
+  type ProofOutputsUri,
   ProvingError,
   type ProvingJobId,
   ProvingRequestType,
   type PublicInputsAndRecursiveProof,
-  type V2ProofOutputUri,
   type V2ProvingJob,
   makePublicInputsAndRecursiveProof,
 } from '@aztec/circuit-types';
@@ -105,7 +105,7 @@ describe('ProvingAgent', () => {
 
     jobSource.getProvingJob.mockResolvedValueOnce({ job, time });
     proofDB.getProofInput.mockResolvedValueOnce(inputs);
-    proofDB.saveProofOutput.mockResolvedValueOnce('output-uri' as V2ProofOutputUri);
+    proofDB.saveProofOutput.mockResolvedValueOnce('output-uri' as ProofOutputsUri);
 
     agent.start();
 

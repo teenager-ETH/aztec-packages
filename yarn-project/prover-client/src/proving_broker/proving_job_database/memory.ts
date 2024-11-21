@@ -1,4 +1,4 @@
-import type { ProvingJobId, V2ProofOutputUri, V2ProvingJob, V2ProvingJobResult } from '@aztec/circuit-types';
+import type { ProofOutputsUri, ProvingJobId, V2ProvingJob, V2ProvingJobResult } from '@aztec/circuit-types';
 
 import { type ProvingJobDatabase } from '../proving_job_database.js';
 
@@ -19,7 +19,7 @@ export class InMemoryDatabase implements ProvingJobDatabase {
     return Promise.resolve();
   }
 
-  setProvingJobResult(id: ProvingJobId, value: V2ProofOutputUri): Promise<void> {
+  setProvingJobResult(id: ProvingJobId, value: ProofOutputsUri): Promise<void> {
     this.results.set(id, { value });
     return Promise.resolve();
   }

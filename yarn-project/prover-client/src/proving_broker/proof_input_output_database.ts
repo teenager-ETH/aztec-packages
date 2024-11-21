@@ -1,10 +1,10 @@
 import {
   ProofInputs,
   type ProofInputsUri,
+  type ProofOutputsUri,
   type ProvingJobId,
+  ProvingJobResult,
   type ProvingRequestType,
-  V2ProofOutput,
-  type V2ProofOutputUri,
 } from '@aztec/circuit-types';
 
 /**
@@ -27,7 +27,11 @@ export interface ProofInputOutputDatabase {
    * @param proofOutput - The proof output to save.
    * @returns The URI of the saved proof output.
    */
-  saveProofOutput(jobId: ProvingJobId, type: ProvingRequestType, proofOutput: V2ProofOutput): Promise<V2ProofOutputUri>;
+  saveProofOutput(
+    jobId: ProvingJobId,
+    type: ProvingRequestType,
+    proofOutput: ProvingJobResult,
+  ): Promise<ProofOutputsUri>;
 
   /**
    * Retrieve a proof input from the database.
@@ -41,7 +45,7 @@ export interface ProofInputOutputDatabase {
    * @param uri - The URI of the proof output to retrieve.
    * @returns The proof output.
    */
-  getProofOutput(uri: V2ProofOutputUri): Promise<V2ProofOutput>;
+  getProofOutput(uri: ProofOutputsUri): Promise<ProvingJobResult>;
 }
 
 /**
@@ -60,11 +64,15 @@ export class InlineProofIODatabase implements ProofInputOutputDatabase {
     );
   }
 
-  saveProofOutput(_id: ProvingJobId, _type: ProvingRequestType, proofOutput: V2ProofOutput): Promise<V2ProofOutputUri> {
+  saveProofOutput(
+    _id: ProvingJobId,
+    _type: ProvingRequestType,
+    proofOutput: ProvingJobResult,
+  ): Promise<ProofOutputsUri> {
     return Promise.resolve(
       (InlineProofIODatabase.PREFIX +
         InlineProofIODatabase.SEPARATOR +
-        Buffer.from(JSON.stringify(proofOutput)).toString(InlineProofIODatabase.BUFFER_ENCODING)) as V2ProofOutputUri,
+        Buffer.from(JSON.stringify(proofOutput)).toString(InlineProofIODatabase.BUFFER_ENCODING)) as ProofOutputsUri,
     );
   }
 
@@ -79,14 +87,14 @@ export class InlineProofIODatabase implements ProofInputOutputDatabase {
     );
   }
 
-  getProofOutput(uri: V2ProofOutputUri): Promise<V2ProofOutput> {
+  getProofOutput(uri: ProofOutputsUri): Promise<ProvingJobResult> {
     const [prefix, data] = uri.split(',');
     if (prefix !== InlineProofIODatabase.PREFIX) {
       throw new Error('Invalid proof output URI: ' + prefix);
     }
 
     return Promise.resolve(
-      V2ProofOutput.parse(JSON.parse(Buffer.from(data, InlineProofIODatabase.BUFFER_ENCODING).toString())),
+      ProvingJobResult.parse(JSON.parse(Buffer.from(data, InlineProofIODatabase.BUFFER_ENCODING).toString())),
     );
   }
 }

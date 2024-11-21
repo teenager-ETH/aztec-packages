@@ -12,9 +12,9 @@ import {
   type ProofAndVerificationKey,
   type ProofInputssByType,
   type ProverCache,
+  type ProvingJobResultsMap,
   ProvingRequestType,
   type ServerCircuitProver,
-  type V2ProofOutputByType,
 } from '@aztec/circuit-types/interfaces';
 import {
   type BaseOrMergeRollupPublicInputs,
@@ -626,7 +626,7 @@ export class ProvingOrchestrator implements EpochProver {
     jobId: string,
     type: T,
     inputs: ProofInputssByType[T],
-    callback: (result: V2ProofOutputByType[T]) => void | Promise<void>,
+    callback: (result: ProvingJobResultsMap[T]) => void | Promise<void>,
   ) {
     if (!provingState?.verifyState()) {
       logger.debug(`Not enqueuing job, state no longer valid`);

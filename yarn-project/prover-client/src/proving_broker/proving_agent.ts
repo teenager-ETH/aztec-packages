@@ -1,9 +1,9 @@
 import {
   ProvingError,
   type ProvingJobId,
+  type ProvingJobResult,
   ProvingRequestType,
   type ServerCircuitProver,
-  type V2ProofOutput,
   type V2ProvingJob,
 } from '@aztec/circuit-types';
 import { randomBytes } from '@aztec/foundation/crypto';
@@ -12,7 +12,7 @@ import { RunningPromise } from '@aztec/foundation/running-promise';
 
 import { type ProofInputOutputDatabase } from './proof_input_output_database.js';
 import { type ProvingJobConsumer } from './proving_broker_interface.js';
-import { ProvingJobController, ProvingJobStatus } from './proving_job_controller.js';
+import { ProvingJobController, ProvingJobControllerStatus } from './proving_job_controller.js';
 
 /**
  * A helper class that encapsulates a circuit prover and connects it to a job source.
@@ -62,7 +62,7 @@ export class ProvingAgent {
       // (2) get a new job
       // If during (1) the broker returns a new job that means we can cancel the current job and start the new one
       let maybeJob: { job: V2ProvingJob; time: number } | undefined;
-      if (this.currentJobController?.getStatus() === ProvingJobStatus.PROVING) {
+      if (this.currentJobController?.getStatus() === ProvingJobControllerStatus.PROVING) {
         maybeJob = await this.jobSource.reportProvingJobProgress(
           this.currentJobController.getJobId(),
           this.currentJobController.getStartedAt(),
@@ -78,7 +78,7 @@ export class ProvingAgent {
 
       let abortedProofJobId: string = '';
       let abortedProofName: string = '';
-      if (this.currentJobController?.getStatus() === ProvingJobStatus.PROVING) {
+      if (this.currentJobController?.getStatus() === ProvingJobControllerStatus.PROVING) {
         abortedProofJobId = this.currentJobController.getJobId();
         abortedProofName = this.currentJobController.getProofTypeName();
         this.currentJobController?.abort();
@@ -119,7 +119,7 @@ export class ProvingAgent {
     jobId: ProvingJobId,
     type: ProvingRequestType,
     err: Error | undefined,
-    result: V2ProofOutput | undefined,
+    result: ProvingJobResult | undefined,
   ) => {
     if (err) {
       const retry = err.name === ProvingError.NAME ? (err as ProvingError).retry : false;

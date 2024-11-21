@@ -1,8 +1,8 @@
 import {
   type ProofInputsUri,
+  type ProofOutputsUri,
   type ProvingJobId,
   ProvingRequestType,
-  type V2ProofOutputUri,
   type V2ProvingJob,
 } from '@aztec/circuit-types';
 import { randomBytes } from '@aztec/foundation/crypto';
@@ -1051,6 +1051,6 @@ function makeInputsUri(): ProofInputsUri {
   return randomBytes(8).toString('hex') as ProofInputsUri;
 }
 
-function makeOutputsUri(): V2ProofOutputUri {
-  return randomBytes(8).toString('hex') as V2ProofOutputUri;
+function makeOutputsUri(): ProofOutputsUri {
+  return randomBytes(8).toString('hex') as ProofOutputsUri;
 }

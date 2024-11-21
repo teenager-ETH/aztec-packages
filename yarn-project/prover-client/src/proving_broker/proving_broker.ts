@@ -1,7 +1,7 @@
 import {
+  type ProofOutputsUri,
   type ProvingJobId,
   ProvingRequestType,
-  type V2ProofOutputUri,
   type V2ProvingJob,
   type V2ProvingJobResult,
   type V2ProvingJobStatus,
@@ -256,7 +256,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     }
   }
 
-  async reportProvingJobSuccess(id: ProvingJobId, value: V2ProofOutputUri): Promise<void> {
+  async reportProvingJobSuccess(id: ProvingJobId, value: ProofOutputsUri): Promise<void> {
     const info = this.inProgress.get(id);
     const item = this.jobsCache.get(id);
     const retries = this.retries.get(id) ?? 0;

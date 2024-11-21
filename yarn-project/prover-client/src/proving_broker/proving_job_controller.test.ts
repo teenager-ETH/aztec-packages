@@ -6,7 +6,7 @@ import { sleep } from '@aztec/foundation/sleep';
 import { jest } from '@jest/globals';
 
 import { MockProver } from '../test/mock_prover.js';
-import { ProvingJobController, ProvingJobStatus } from './proving_job_controller.js';
+import { ProvingJobController, ProvingJobControllerStatus } from './proving_job_controller.js';
 
 describe('ProvingJobController', () => {
   let prover: MockProver;
@@ -29,18 +29,18 @@ describe('ProvingJobController', () => {
   });
 
   it('reports IDLE status initially', () => {
-    expect(controller.getStatus()).toBe(ProvingJobStatus.IDLE);
+    expect(controller.getStatus()).toBe(ProvingJobControllerStatus.IDLE);
   });
 
   it('reports PROVING status while busy', () => {
     controller.start();
-    expect(controller.getStatus()).toBe(ProvingJobStatus.PROVING);
+    expect(controller.getStatus()).toBe(ProvingJobControllerStatus.PROVING);
   });
 
   it('reports DONE status after job is done', async () => {
     controller.start();
     await sleep(1); // give promises a chance to complete
-    expect(controller.getStatus()).toBe(ProvingJobStatus.DONE);
+    expect(controller.getStatus()).toBe(ProvingJobControllerStatus.DONE);
   });
 
   it('calls onComplete with the proof', async () => {

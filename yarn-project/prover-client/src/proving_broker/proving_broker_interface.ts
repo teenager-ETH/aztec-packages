@@ -1,7 +1,7 @@
 import {
+  type ProofOutputsUri,
   type ProvingJobId,
   type ProvingRequestType,
-  type V2ProofOutputUri,
   type V2ProvingJob,
   type V2ProvingJobStatus,
 } from '@aztec/circuit-types';
@@ -50,7 +50,7 @@ export interface ProvingJobConsumer {
    * @param id - The ID of the job to report success for
    * @param result - The result of the job
    */
-  reportProvingJobSuccess(id: ProvingJobId, result: V2ProofOutputUri): Promise<void>;
+  reportProvingJobSuccess(id: ProvingJobId, result: ProofOutputsUri): Promise<void>;
 
   /**
    * Marks a proving job as errored

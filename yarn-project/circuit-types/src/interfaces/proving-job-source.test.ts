@@ -11,7 +11,7 @@ import { type ProvingJobSource, ProvingJobSourceSchema } from './proving-job-sou
 import {
   type ProofInputs,
   type ProvingJob,
-  type ProvingRequestResult,
+  type ProvingJobResult,
   type ProvingRequestResultFor,
   ProvingRequestType,
   makePublicInputsAndRecursiveProof,
@@ -76,7 +76,7 @@ class MockProvingJobSource implements ProvingJobSource {
     expect(typeof jobId).toEqual('string');
     return Promise.resolve();
   }
-  resolveProvingJob(jobId: string, result: ProvingRequestResult): Promise<void> {
+  resolveProvingJob(jobId: string, result: ProvingJobResult): Promise<void> {
     expect(typeof jobId).toEqual('string');
     const baseRollupResult = result as ProvingRequestResultFor<typeof ProvingRequestType.PRIVATE_BASE_ROLLUP>;
     expect(baseRollupResult.result.inputs).toBeInstanceOf(BaseOrMergeRollupPublicInputs);

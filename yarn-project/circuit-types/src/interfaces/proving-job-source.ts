@@ -2,14 +2,7 @@ import { type ApiSchemaFor } from '@aztec/foundation/schemas';
 
 import { z } from 'zod';
 
-import {
-  type ProofInputs,
-  type ProvingJob,
-  ProvingJobId,
-  ProvingJobSchema,
-  type ProvingRequestResult,
-  ProvingRequestResultSchema,
-} from './proving-job.js';
+import { type ProofInputs, type ProvingJob, ProvingJobId, ProvingJobResult, ProvingJobSchema } from './proving-job.js';
 
 export interface ProvingJobSource {
   /**
@@ -30,7 +23,7 @@ export interface ProvingJobSource {
    * @param jobId - The ID of the job to resolve.
    * @param result - The result of the proving job.
    */
-  resolveProvingJob(jobId: string, result: ProvingRequestResult): Promise<void>;
+  resolveProvingJob(jobId: string, result: ProvingJobResult): Promise<void>;
 
   /**
    * Rejects a proving job.
@@ -43,6 +36,6 @@ export interface ProvingJobSource {
 export const ProvingJobSourceSchema: ApiSchemaFor<ProvingJobSource> = {
   getProvingJob: z.function().args().returns(ProvingJobSchema.optional()),
   heartbeat: z.function().args(ProvingJobId).returns(z.void()),
-  resolveProvingJob: z.function().args(ProvingJobId, ProvingRequestResultSchema).returns(z.void()),
+  resolveProvingJob: z.function().args(ProvingJobId, ProvingJobResult).returns(z.void()),
   rejectProvingJob: z.function().args(ProvingJobId, z.string()).returns(z.void()),
 };
