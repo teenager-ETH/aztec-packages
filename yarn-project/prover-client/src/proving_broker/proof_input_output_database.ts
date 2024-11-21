@@ -1,10 +1,10 @@
 import {
+  type ProvingJobId,
   type ProvingRequestType,
   V2ProofInput,
   type V2ProofInputUri,
   V2ProofOutput,
   type V2ProofOutputUri,
-  type V2ProvingJobId,
 } from '@aztec/circuit-types';
 
 /**
@@ -18,7 +18,7 @@ export interface ProofInputOutputDatabase {
    * @param proofInput - The proof input to save.
    * @returns The URI of the saved proof input.
    */
-  saveProofInput(jobId: V2ProvingJobId, type: ProvingRequestType, proofInput: V2ProofInput): Promise<V2ProofInputUri>;
+  saveProofInput(jobId: ProvingJobId, type: ProvingRequestType, proofInput: V2ProofInput): Promise<V2ProofInputUri>;
 
   /**
    * Save a proof output to the database.
@@ -27,11 +27,7 @@ export interface ProofInputOutputDatabase {
    * @param proofOutput - The proof output to save.
    * @returns The URI of the saved proof output.
    */
-  saveProofOutput(
-    jobId: V2ProvingJobId,
-    type: ProvingRequestType,
-    proofOutput: V2ProofOutput,
-  ): Promise<V2ProofOutputUri>;
+  saveProofOutput(jobId: ProvingJobId, type: ProvingRequestType, proofOutput: V2ProofOutput): Promise<V2ProofOutputUri>;
 
   /**
    * Retrieve a proof input from the database.
@@ -56,7 +52,7 @@ export class InlineProofIODatabase implements ProofInputOutputDatabase {
   private static readonly SEPARATOR = ',';
   private static readonly BUFFER_ENCODING = 'base64url';
 
-  saveProofInput(_id: V2ProvingJobId, _type: ProvingRequestType, proofInput: V2ProofInput): Promise<V2ProofInputUri> {
+  saveProofInput(_id: ProvingJobId, _type: ProvingRequestType, proofInput: V2ProofInput): Promise<V2ProofInputUri> {
     return Promise.resolve(
       (InlineProofIODatabase.PREFIX +
         InlineProofIODatabase.SEPARATOR +
@@ -64,11 +60,7 @@ export class InlineProofIODatabase implements ProofInputOutputDatabase {
     );
   }
 
-  saveProofOutput(
-    _id: V2ProvingJobId,
-    _type: ProvingRequestType,
-    proofOutput: V2ProofOutput,
-  ): Promise<V2ProofOutputUri> {
+  saveProofOutput(_id: ProvingJobId, _type: ProvingRequestType, proofOutput: V2ProofOutput): Promise<V2ProofOutputUri> {
     return Promise.resolve(
       (InlineProofIODatabase.PREFIX +
         InlineProofIODatabase.SEPARATOR +

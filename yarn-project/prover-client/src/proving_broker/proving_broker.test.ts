@@ -1,9 +1,9 @@
 import {
+  type ProvingJobId,
   ProvingRequestType,
   type V2ProofInputUri,
   type V2ProofOutputUri,
   type V2ProvingJob,
-  type V2ProvingJobId,
 } from '@aztec/circuit-types';
 import { randomBytes } from '@aztec/foundation/crypto';
 import { openTmpStore } from '@aztec/kv-store/utils';
@@ -1032,19 +1032,19 @@ describe.each([
     });
   });
 
-  async function assertJobStatus(id: V2ProvingJobId, status: string) {
+  async function assertJobStatus(id: ProvingJobId, status: string) {
     await expect(broker.getProvingJobStatus(id)).resolves.toEqual(expect.objectContaining({ status }));
   }
 
-  async function getAndAssertNextJobId(id: V2ProvingJobId, ...allowList: ProvingRequestType[]) {
+  async function getAndAssertNextJobId(id: ProvingJobId, ...allowList: ProvingRequestType[]) {
     await expect(broker.getProvingJob({ allowList })).resolves.toEqual(
       expect.objectContaining({ job: expect.objectContaining({ id }) }),
     );
   }
 });
 
-function makeProvingJobId(): V2ProvingJobId {
-  return randomBytes(8).toString('hex') as V2ProvingJobId;
+function makeProvingJobId(): ProvingJobId {
+  return randomBytes(8).toString('hex') as ProvingJobId;
 }
 
 function makeInputsUri(): V2ProofInputUri {

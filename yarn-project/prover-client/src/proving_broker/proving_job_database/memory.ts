@@ -1,16 +1,16 @@
-import type { V2ProofOutputUri, V2ProvingJob, V2ProvingJobId, V2ProvingJobResult } from '@aztec/circuit-types';
+import type { ProvingJobId, V2ProofOutputUri, V2ProvingJob, V2ProvingJobResult } from '@aztec/circuit-types';
 
 import { type ProvingJobDatabase } from '../proving_job_database.js';
 
 export class InMemoryDatabase implements ProvingJobDatabase {
-  private jobs = new Map<V2ProvingJobId, V2ProvingJob>();
-  private results = new Map<V2ProvingJobId, V2ProvingJobResult>();
+  private jobs = new Map<ProvingJobId, V2ProvingJob>();
+  private results = new Map<ProvingJobId, V2ProvingJobResult>();
 
-  getProvingJob(id: V2ProvingJobId): V2ProvingJob | undefined {
+  getProvingJob(id: ProvingJobId): V2ProvingJob | undefined {
     return this.jobs.get(id);
   }
 
-  getProvingJobResult(id: V2ProvingJobId): V2ProvingJobResult | undefined {
+  getProvingJobResult(id: ProvingJobId): V2ProvingJobResult | undefined {
     return this.results.get(id);
   }
 
@@ -19,17 +19,17 @@ export class InMemoryDatabase implements ProvingJobDatabase {
     return Promise.resolve();
   }
 
-  setProvingJobResult(id: V2ProvingJobId, value: V2ProofOutputUri): Promise<void> {
+  setProvingJobResult(id: ProvingJobId, value: V2ProofOutputUri): Promise<void> {
     this.results.set(id, { value });
     return Promise.resolve();
   }
 
-  setProvingJobError(id: V2ProvingJobId, error: Error): Promise<void> {
+  setProvingJobError(id: ProvingJobId, error: Error): Promise<void> {
     this.results.set(id, { error: String(error) });
     return Promise.resolve();
   }
 
-  deleteProvingJobAndResult(id: V2ProvingJobId): Promise<void> {
+  deleteProvingJobAndResult(id: ProvingJobId): Promise<void> {
     this.jobs.delete(id);
     this.results.delete(id);
     return Promise.resolve();

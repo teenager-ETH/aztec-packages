@@ -1,8 +1,8 @@
 import {
+  type ProvingJobId,
   ProvingRequestType,
   type V2ProofOutputUri,
   type V2ProvingJob,
-  type V2ProvingJobId,
   type V2ProvingJobResult,
   type V2ProvingJobStatus,
 } from '@aztec/circuit-types';
@@ -16,7 +16,7 @@ import type { ProvingJobConsumer, ProvingJobFilter, ProvingJobProducer } from '.
 import { type ProvingJobDatabase } from './proving_job_database.js';
 
 type InProgressMetadata = {
-  id: V2ProvingJobId;
+  id: ProvingJobId;
   startedAt: number;
   lastUpdatedAt: number;
 };
@@ -52,18 +52,18 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
 
   // holds a copy of the database in memory in order to quickly fulfill requests
   // this is fine because this broker is the only one that can modify the database
-  private jobsCache = new Map<V2ProvingJobId, V2ProvingJob>();
+  private jobsCache = new Map<ProvingJobId, V2ProvingJob>();
   // as above, but for results
-  private resultsCache = new Map<V2ProvingJobId, V2ProvingJobResult>();
+  private resultsCache = new Map<ProvingJobId, V2ProvingJobResult>();
 
   // keeps track of which jobs are currently being processed
   // in the event of a crash this information is lost, but that's ok
   // the next time the broker starts it will recreate jobsCache and still
   // accept results from the workers
-  private inProgress = new Map<V2ProvingJobId, InProgressMetadata>();
+  private inProgress = new Map<ProvingJobId, InProgressMetadata>();
 
   // keep track of which proving job has been retried
-  private retries = new Map<V2ProvingJobId, number>();
+  private retries = new Map<ProvingJobId, number>();
 
   private timeoutPromise: RunningPromise;
   private timeSource = () => Math.floor(Date.now() / 1000);
@@ -113,7 +113,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     this.enqueueJobInternal(job);
   }
 
-  public async removeAndCancelProvingJob(id: V2ProvingJobId): Promise<void> {
+  public async removeAndCancelProvingJob(id: ProvingJobId): Promise<void> {
     this.logger.info(`Cancelling job id=${id}`);
     await this.database.deleteProvingJobAndResult(id);
 
@@ -124,7 +124,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
   }
 
   // eslint-disable-next-line require-await
-  public async getProvingJobStatus(id: V2ProvingJobId): Promise<V2ProvingJobStatus> {
+  public async getProvingJobStatus(id: ProvingJobId): Promise<V2ProvingJobStatus> {
     const result = this.resultsCache.get(id);
     if (!result) {
       // no result yet, check if we know the item
@@ -177,7 +177,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     return undefined;
   }
 
-  async reportProvingJobError(id: V2ProvingJobId, err: Error, retry = false): Promise<void> {
+  async reportProvingJobError(id: ProvingJobId, err: Error, retry = false): Promise<void> {
     const info = this.inProgress.get(id);
     const item = this.jobsCache.get(id);
     const retries = this.retries.get(id) ?? 0;
@@ -208,7 +208,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
   }
 
   reportProvingJobProgress<F extends ProvingRequestType[]>(
-    id: V2ProvingJobId,
+    id: ProvingJobId,
     startedAt: number,
     filter?: ProvingJobFilter<F>,
   ): Promise<{ job: V2ProvingJob; time: number } | undefined> {
@@ -256,7 +256,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     }
   }
 
-  async reportProvingJobSuccess(id: V2ProvingJobId, value: V2ProofOutputUri): Promise<void> {
+  async reportProvingJobSuccess(id: ProvingJobId, value: V2ProofOutputUri): Promise<void> {
     const info = this.inProgress.get(id);
     const item = this.jobsCache.get(id);
     const retries = this.retries.get(id) ?? 0;

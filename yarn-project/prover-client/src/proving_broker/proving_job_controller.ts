@@ -1,9 +1,9 @@
 import {
+  type ProvingJobId,
   ProvingRequestType,
   type ServerCircuitProver,
   type V2ProofInput,
   type V2ProofOutput,
-  type V2ProvingJobId,
 } from '@aztec/circuit-types';
 
 export enum ProvingJobStatus {
@@ -13,7 +13,7 @@ export enum ProvingJobStatus {
 }
 
 type ProvingJobCompletionCallback = (
-  jobId: V2ProvingJobId,
+  jobId: ProvingJobId,
   type: ProvingRequestType,
   error: Error | undefined,
   result: V2ProofOutput | undefined,
@@ -25,7 +25,7 @@ export class ProvingJobController {
   private abortController = new AbortController();
 
   constructor(
-    private jobId: V2ProvingJobId,
+    private jobId: ProvingJobId,
     private inputs: V2ProofInput,
     private startedAt: number,
     private circuitProver: ServerCircuitProver,
@@ -70,7 +70,7 @@ export class ProvingJobController {
     this.abortController.abort();
   }
 
-  public getJobId(): V2ProvingJobId {
+  public getJobId(): ProvingJobId {
     return this.jobId;
   }
 

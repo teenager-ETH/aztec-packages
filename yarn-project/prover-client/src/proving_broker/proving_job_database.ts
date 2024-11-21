@@ -1,7 +1,7 @@
 import {
+  type ProvingJobId,
   type V2ProofOutputUri,
   type V2ProvingJob,
-  type V2ProvingJobId,
   type V2ProvingJobResult,
 } from '@aztec/circuit-types';
 
@@ -19,7 +19,7 @@ export interface ProvingJobDatabase {
    * Removes a proof request from the backend
    * @param id - The ID of the proof request to remove
    */
-  deleteProvingJobAndResult(id: V2ProvingJobId): Promise<void>;
+  deleteProvingJobAndResult(id: ProvingJobId): Promise<void>;
 
   /**
    * Returns an iterator over all saved proving jobs
@@ -32,7 +32,7 @@ export interface ProvingJobDatabase {
    * @param ProvingRequestType - The type of proof that was requested
    * @param value - The result of the proof request
    */
-  setProvingJobResult(id: V2ProvingJobId, value: V2ProofOutputUri): Promise<void>;
+  setProvingJobResult(id: ProvingJobId, value: V2ProofOutputUri): Promise<void>;
 
   /**
    * Saves an error that occurred while processing a proof request
@@ -40,5 +40,5 @@ export interface ProvingJobDatabase {
    * @param ProvingRequestType - The type of proof that was requested
    * @param err - The error that occurred while processing the proof request
    */
-  setProvingJobError(id: V2ProvingJobId, err: Error): Promise<void>;
+  setProvingJobError(id: ProvingJobId, err: Error): Promise<void>;
 }

@@ -1,11 +1,11 @@
-import { type V2ProofOutputUri, V2ProvingJob, type V2ProvingJobId, V2ProvingJobResult } from '@aztec/circuit-types';
+import { type ProvingJobId, type V2ProofOutputUri, V2ProvingJob, V2ProvingJobResult } from '@aztec/circuit-types';
 import { type AztecKVStore, type AztecMap } from '@aztec/kv-store';
 
 import { type ProvingJobDatabase } from '../proving_job_database.js';
 
 export class PersistedProvingJobDatabase implements ProvingJobDatabase {
-  private jobs: AztecMap<V2ProvingJobId, string>;
-  private jobResults: AztecMap<V2ProvingJobId, string>;
+  private jobs: AztecMap<ProvingJobId, string>;
+  private jobResults: AztecMap<ProvingJobId, string>;
 
   constructor(private store: AztecKVStore) {
     this.jobs = store.openMap('proving_jobs');
@@ -25,19 +25,19 @@ export class PersistedProvingJobDatabase implements ProvingJobDatabase {
     }
   }
 
-  deleteProvingJobAndResult(id: V2ProvingJobId): Promise<void> {
+  deleteProvingJobAndResult(id: ProvingJobId): Promise<void> {
     return this.store.transaction(() => {
       void this.jobs.delete(id);
       void this.jobResults.delete(id);
     });
   }
 
-  async setProvingJobError(id: V2ProvingJobId, err: Error): Promise<void> {
+  async setProvingJobError(id: ProvingJobId, err: Error): Promise<void> {
     const res: V2ProvingJobResult = { error: err.message };
     await this.jobResults.set(id, JSON.stringify(res));
   }
 
-  async setProvingJobResult(id: V2ProvingJobId, value: V2ProofOutputUri): Promise<void> {
+  async setProvingJobResult(id: ProvingJobId, value: V2ProofOutputUri): Promise<void> {
     const res: V2ProvingJobResult = { value };
     await this.jobResults.set(id, JSON.stringify(res));
   }

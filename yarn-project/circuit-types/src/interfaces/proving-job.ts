@@ -148,13 +148,13 @@ export const ProvingRequestSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal(ProvingRequestType.TUBE_PROOF), inputs: TubeInputs.schema }),
 ]);
 
-export type JobId = z.infer<typeof JobIdSchema>;
+export const ProvingJobId = z.string();
 
-export const JobIdSchema = z.string();
+export type ProvingJobId = z.infer<typeof ProvingJobId>;
 
-export type ProvingJob<T extends ProvingRequest> = { id: JobId; request: T };
+export type ProvingJob<T extends ProvingRequest> = { id: ProvingJobId; request: T };
 
-export const ProvingJobSchema = z.object({ id: JobIdSchema, request: ProvingRequestSchema });
+export const ProvingJobSchema = z.object({ id: ProvingJobId, request: ProvingRequestSchema });
 
 type ProvingRequestResultsMap = {
   [ProvingRequestType.PRIVATE_KERNEL_EMPTY]: PublicInputsAndRecursiveProof<KernelCircuitPublicInputs>;
@@ -238,9 +238,6 @@ export const ProvingRequestResultSchema = z.discriminatedUnion('type', [
   }),
 ]) satisfies ZodFor<ProvingRequestResult>;
 
-export const V2ProvingJobId = z.string().brand('ProvingJobId');
-export type V2ProvingJobId = z.infer<typeof V2ProvingJobId>;
-
 export const V2ProofInput = z.discriminatedUnion('type', [
   z.object({
     type: z.literal(ProvingRequestType.PUBLIC_VM),
@@ -298,7 +295,7 @@ export const V2ProofInputUri = z.string().brand('ProofInputUri');
 export type V2ProofInputUri = z.infer<typeof V2ProofInputUri>;
 
 export const V2ProvingJob = z.object({
-  id: V2ProvingJobId,
+  id: ProvingJobId,
   blockNumber: z.number(),
   type: z.nativeEnum(ProvingRequestType),
   inputs: V2ProofInputUri,

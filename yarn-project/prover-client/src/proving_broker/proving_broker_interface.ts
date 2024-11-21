@@ -1,8 +1,8 @@
 import {
+  type ProvingJobId,
   type ProvingRequestType,
   type V2ProofOutputUri,
   type V2ProvingJob,
-  type V2ProvingJobId,
   type V2ProvingJobStatus,
 } from '@aztec/circuit-types';
 
@@ -20,13 +20,13 @@ export interface ProvingJobProducer {
    * Cancels a proving job and clears all of its
    * @param id - The ID of the job to cancel
    */
-  removeAndCancelProvingJob(id: V2ProvingJobId): Promise<void>;
+  removeAndCancelProvingJob(id: ProvingJobId): Promise<void>;
 
   /**
    * Returns the current status fof the proving job
    * @param id - The ID of the job to get the status of
    */
-  getProvingJobStatus(id: V2ProvingJobId): Promise<V2ProvingJobStatus>;
+  getProvingJobStatus(id: ProvingJobId): Promise<V2ProvingJobStatus>;
 }
 
 export interface ProvingJobFilter<T extends ProvingRequestType[]> {
@@ -50,7 +50,7 @@ export interface ProvingJobConsumer {
    * @param id - The ID of the job to report success for
    * @param result - The result of the job
    */
-  reportProvingJobSuccess(id: V2ProvingJobId, result: V2ProofOutputUri): Promise<void>;
+  reportProvingJobSuccess(id: ProvingJobId, result: V2ProofOutputUri): Promise<void>;
 
   /**
    * Marks a proving job as errored
@@ -58,7 +58,7 @@ export interface ProvingJobConsumer {
    * @param err - The error that occurred while processing the job
    * @param retry - Whether to retry the job
    */
-  reportProvingJobError(id: V2ProvingJobId, err: Error, retry?: boolean): Promise<void>;
+  reportProvingJobError(id: ProvingJobId, err: Error, retry?: boolean): Promise<void>;
 
   /**
    * Sends a heartbeat to the broker to indicate that the agent is still working on the given proving job
@@ -67,7 +67,7 @@ export interface ProvingJobConsumer {
    * @param filter - Optional filter for the type of job to get
    */
   reportProvingJobProgress<F extends ProvingRequestType[]>(
-    id: V2ProvingJobId,
+    id: ProvingJobId,
     startedAt: number,
     filter?: ProvingJobFilter<F>,
   ): Promise<{ job: V2ProvingJob; time: number } | undefined>;

@@ -1,10 +1,10 @@
 import {
   ProvingError,
+  type ProvingJobId,
   ProvingRequestType,
   type ServerCircuitProver,
   type V2ProofOutput,
   type V2ProvingJob,
-  type V2ProvingJobId,
 } from '@aztec/circuit-types';
 import { randomBytes } from '@aztec/foundation/crypto';
 import { createDebugLogger } from '@aztec/foundation/log';
@@ -116,7 +116,7 @@ export class ProvingAgent {
   };
 
   handleJobResult = async (
-    jobId: V2ProvingJobId,
+    jobId: ProvingJobId,
     type: ProvingRequestType,
     err: Error | undefined,
     result: V2ProofOutput | undefined,

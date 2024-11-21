@@ -1,12 +1,12 @@
 import {
   ProvingError,
+  type ProvingJobId,
   ProvingRequestType,
   type PublicInputsAndRecursiveProof,
   type V2ProofInput,
   type V2ProofInputUri,
   type V2ProofOutputUri,
   type V2ProvingJob,
-  type V2ProvingJobId,
   makePublicInputsAndRecursiveProof,
 } from '@aztec/circuit-types';
 import {
@@ -227,7 +227,7 @@ describe('ProvingAgent', () => {
     const time = jest.now();
     const inputs: V2ProofInput = { type: ProvingRequestType.BASE_PARITY, value: makeBaseParityInputs() };
     const job: V2ProvingJob = {
-      id: randomBytes(8).toString('hex') as V2ProvingJobId,
+      id: randomBytes(8).toString('hex') as ProvingJobId,
       blockNumber: 1,
       type: ProvingRequestType.BASE_PARITY,
       inputs: randomBytes(8).toString('hex') as V2ProofInputUri,

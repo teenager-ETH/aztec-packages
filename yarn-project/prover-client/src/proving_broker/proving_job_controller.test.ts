@@ -1,4 +1,4 @@
-import { ProvingRequestType, type V2ProvingJobId, makePublicInputsAndRecursiveProof } from '@aztec/circuit-types';
+import { type ProvingJobId, ProvingRequestType, makePublicInputsAndRecursiveProof } from '@aztec/circuit-types';
 import { RECURSIVE_PROOF_LENGTH, VerificationKeyData, makeRecursiveProof } from '@aztec/circuits.js';
 import { makeBaseParityInputs, makeParityPublicInputs } from '@aztec/circuits.js/testing';
 import { sleep } from '@aztec/foundation/sleep';
@@ -17,7 +17,7 @@ describe('ProvingJobController', () => {
     prover = new MockProver();
     onComplete = jest.fn();
     controller = new ProvingJobController(
-      '1' as V2ProvingJobId,
+      '1' as ProvingJobId,
       {
         type: ProvingRequestType.BASE_PARITY,
         value: makeBaseParityInputs(),

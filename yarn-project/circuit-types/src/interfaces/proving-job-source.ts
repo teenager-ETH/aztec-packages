@@ -3,8 +3,8 @@ import { type ApiSchemaFor } from '@aztec/foundation/schemas';
 import { z } from 'zod';
 
 import {
-  JobIdSchema,
   type ProvingJob,
+  ProvingJobId,
   ProvingJobSchema,
   type ProvingRequest,
   type ProvingRequestResult,
@@ -42,7 +42,7 @@ export interface ProvingJobSource {
 
 export const ProvingJobSourceSchema: ApiSchemaFor<ProvingJobSource> = {
   getProvingJob: z.function().args().returns(ProvingJobSchema.optional()),
-  heartbeat: z.function().args(JobIdSchema).returns(z.void()),
-  resolveProvingJob: z.function().args(JobIdSchema, ProvingRequestResultSchema).returns(z.void()),
-  rejectProvingJob: z.function().args(JobIdSchema, z.string()).returns(z.void()),
+  heartbeat: z.function().args(ProvingJobId).returns(z.void()),
+  resolveProvingJob: z.function().args(ProvingJobId, ProvingRequestResultSchema).returns(z.void()),
+  rejectProvingJob: z.function().args(ProvingJobId, z.string()).returns(z.void()),
 };
