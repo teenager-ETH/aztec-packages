@@ -2,7 +2,7 @@ import type { ProofUri, ProvingJob, ProvingJobId, ProvingJobSettledResult } from
 
 import { type ProvingBrokerDatabase } from '../proving_broker_database.js';
 
-export class InMemoryDatabase implements ProvingBrokerDatabase {
+export class InMemoryBrokerDatabase implements ProvingBrokerDatabase {
   private jobs = new Map<ProvingJobId, ProvingJob>();
   private results = new Map<ProvingJobId, ProvingJobSettledResult>();
 

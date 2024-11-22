@@ -11,7 +11,7 @@ import { AbortError } from '@aztec/foundation/error';
 import { sleep } from '@aztec/foundation/sleep';
 import { NoopTelemetryClient } from '@aztec/telemetry-client/noop';
 
-import { type ProofStore, SimpleProofStore } from '../proving_broker/proof_store.js';
+import { InlineProofStore, type ProofStore } from '../proving_broker/proof_store.js';
 import { MemoryProvingQueue } from './memory-proving-queue.js';
 
 describe('MemoryProvingQueue', () => {
@@ -23,7 +23,7 @@ describe('MemoryProvingQueue', () => {
   beforeEach(() => {
     jobTimeoutMs = 100;
     pollingIntervalMs = 10;
-    proofStore = new SimpleProofStore();
+    proofStore = new InlineProofStore();
     queue = new MemoryProvingQueue(
       new NoopTelemetryClient(),
       jobTimeoutMs,

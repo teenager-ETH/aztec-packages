@@ -60,7 +60,7 @@ const BUFFER_ENCODING = 'base64url';
 /**
  * An implementation of a proof input/output database that stores data inline in the URI.
  */
-export class SimpleProofStore implements ProofStore {
+export class InlineProofStore implements ProofStore {
   saveProofInput<T extends ProvingRequestType>(
     _id: ProvingJobId,
     type: T,

@@ -37,7 +37,7 @@ import { type PromiseWithResolvers, RunningPromise, promiseWithResolvers } from 
 import { PriorityMemoryQueue } from '@aztec/foundation/queue';
 import { type TelemetryClient } from '@aztec/telemetry-client';
 
-import { type ProofStore, SimpleProofStore } from '../proving_broker/proof_store.js';
+import { InlineProofStore, type ProofStore } from '../proving_broker/proof_store.js';
 import { ProvingQueueMetrics } from './queue_metrics.js';
 
 type ProvingJobWithResolvers<T extends ProvingRequestType = ProvingRequestType> = ProvingJob &
@@ -73,7 +73,7 @@ export class MemoryProvingQueue implements ServerCircuitProver, ProvingJobSource
     pollingIntervalMs = 1000,
     private generateId = defaultIdGenerator,
     private timeSource = defaultTimeSource,
-    private proofStore: ProofStore = new SimpleProofStore(),
+    private proofStore: ProofStore = new InlineProofStore(),
   ) {
     this.metrics = new ProvingQueueMetrics(client, 'MemoryProvingQueue');
     this.runningPromise = new RunningPromise(this.poll, pollingIntervalMs);

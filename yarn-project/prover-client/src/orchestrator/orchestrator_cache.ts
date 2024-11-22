@@ -1,6 +1,6 @@
 import type { ProverCache, ProvingJobStatus } from '@aztec/circuit-types';
 
-export class SimpleProverCache implements ProverCache {
+export class InMemoryProverCache implements ProverCache {
   private proofs: Record<string, ProvingJobStatus> = {};
 
   constructor() {}

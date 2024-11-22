@@ -13,6 +13,7 @@ import { jest } from '@jest/globals';
 import { TestCircuitProver } from '../../../bb-prover/src/test/test_circuit_prover.js';
 import { makeGlobals } from '../mocks/fixtures.js';
 import { TestContext } from '../mocks/test_context.js';
+import { TestBroker } from '../test/mock_prover.js';
 import { ProvingOrchestrator } from './orchestrator.js';
 
 const logger = createDebugLogger('aztec:orchestrator-failures');
@@ -31,10 +32,18 @@ describe('prover/orchestrator/failures', () => {
 
   describe('error handling', () => {
     let mockProver: ServerCircuitProver;
+    let broker: TestBroker;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       mockProver = new TestCircuitProver(new NoopTelemetryClient(), new WASMSimulator());
-      orchestrator = new ProvingOrchestrator(context.actualDb, mockProver, new NoopTelemetryClient());
+      broker = new TestBroker(1, mockProver);
+      orchestrator = new ProvingOrchestrator(context.actualDb, broker, new NoopTelemetryClient());
+
+      await broker.start();
+    });
+
+    afterEach(async () => {
+      await broker.stop();
     });
 
     const run = async (message: string) => {

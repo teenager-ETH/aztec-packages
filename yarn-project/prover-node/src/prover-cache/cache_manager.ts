@@ -1,7 +1,7 @@
 import { type ProverCache } from '@aztec/circuit-types';
 import { createDebugLogger } from '@aztec/foundation/log';
 import { AztecLmdbStore } from '@aztec/kv-store/lmdb';
-import { SimpleProverCache } from '@aztec/prover-client';
+import { InMemoryProverCache } from '@aztec/prover-client';
 
 import { type Dirent } from 'fs';
 import { mkdir, readFile, readdir, rm, writeFile } from 'fs/promises';
@@ -18,7 +18,7 @@ export class ProverCacheManager {
 
   public async openCache(epochNumber: bigint, epochHash: Buffer): Promise<ProverCache> {
     if (!this.cacheDir) {
-      return new SimpleProverCache();
+      return new InMemoryProverCache();
     }
 
     const epochDir = EPOCH_DIR_PREFIX + EPOCH_DIR_SEPARATOR + epochNumber;

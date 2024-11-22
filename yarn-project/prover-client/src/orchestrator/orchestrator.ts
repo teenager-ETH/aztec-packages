@@ -55,7 +55,7 @@ import { Attributes, type TelemetryClient, type Tracer, trackSpan } from '@aztec
 
 import { inspect } from 'util';
 
-import { type ProofStore, SimpleProofStore } from '../proving_broker/proof_store.js';
+import { InlineProofStore, type ProofStore } from '../proving_broker/proof_store.js';
 import { type ProvingJobProducer } from '../proving_broker/proving_broker_interface.js';
 import {
   buildBaseRollupHints,
@@ -78,7 +78,7 @@ import {
   type ProvingResult,
   type TreeSnapshots,
 } from './epoch-proving-state.js';
-import { SimpleProverCache } from './orchestrator_cache.js';
+import { InMemoryProverCache } from './orchestrator_cache.js';
 import { ProvingOrchestratorMetrics } from './orchestrator_metrics.js';
 import { TxProvingState } from './tx-proving-state.js';
 
@@ -114,8 +114,8 @@ export class ProvingOrchestrator implements EpochProver {
     private prover: ProvingJobProducer,
     telemetryClient: TelemetryClient,
     private readonly proverId: Fr = Fr.ZERO,
-    private cache: ProverCache = new SimpleProverCache(),
-    private proofStore: ProofStore = new SimpleProofStore(),
+    private cache: ProverCache = new InMemoryProverCache(),
+    private proofStore: ProofStore = new InlineProofStore(),
   ) {
     this.metrics = new ProvingOrchestratorMetrics(telemetryClient, 'ProvingOrchestrator');
   }

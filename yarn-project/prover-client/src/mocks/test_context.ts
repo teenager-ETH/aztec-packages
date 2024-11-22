@@ -3,15 +3,16 @@ import {
   type MerkleTreeWriteOperations,
   type ProcessedTx,
   type ProcessedTxHandler,
+  type ProverCache,
   type PublicExecutionRequest,
   type ServerCircuitProver,
   type Tx,
   type TxValidator,
 } from '@aztec/circuit-types';
 import { type Gas, type GlobalVariables, Header } from '@aztec/circuits.js';
+import { times } from '@aztec/foundation/collection';
 import { Fr } from '@aztec/foundation/fields';
 import { type DebugLogger } from '@aztec/foundation/log';
-import { openTmpStore } from '@aztec/kv-store/utils';
 import {
   PublicProcessor,
   PublicTxSimulator,
@@ -20,7 +21,6 @@ import {
   type WorldStateDB,
 } from '@aztec/simulator';
 import { NoopTelemetryClient } from '@aztec/telemetry-client/noop';
-import { MerkleTrees } from '@aztec/world-state';
 import { NativeWorldStateService } from '@aztec/world-state/native';
 
 import { jest } from '@jest/globals';
@@ -31,8 +31,12 @@ import { TestCircuitProver } from '../../../bb-prover/src/test/test_circuit_prov
 import { AvmFinalizedCallResult } from '../../../simulator/src/avm/avm_contract_call_result.js';
 import { type AvmPersistableStateManager } from '../../../simulator/src/avm/journal/journal.js';
 import { ProvingOrchestrator } from '../orchestrator/index.js';
-import { MemoryProvingQueue } from '../prover-agent/memory-proving-queue.js';
-import { ProverAgent } from '../prover-agent/prover-agent.js';
+import { InMemoryProverCache } from '../orchestrator/orchestrator_cache.js';
+import { InlineProofStore, type ProofStore } from '../proving_broker/proof_store.js';
+import { ProvingAgent } from '../proving_broker/proving_agent.js';
+import { ProvingBroker } from '../proving_broker/proving_broker.js';
+import { type ProvingBrokerDatabase } from '../proving_broker/proving_broker_database.js';
+import { InMemoryBrokerDatabase } from '../proving_broker/proving_broker_database/memory.js';
 import { getEnvironmentConfig, getSimulationProvider, makeGlobals } from './fixtures.js';
 
 export class TestContext {
@@ -44,8 +48,12 @@ export class TestContext {
     public globalVariables: GlobalVariables,
     public actualDb: MerkleTreeWriteOperations,
     public prover: ServerCircuitProver,
-    public proverAgent: ProverAgent,
+    public provingBroker: ProvingBroker,
+    public provingBrokerDatabase: ProvingBrokerDatabase,
+    public agents: ProvingAgent[],
     public orchestrator: ProvingOrchestrator,
+    public orchestratorCache: ProverCache,
+    public proofStore: ProofStore,
     public blockNumber: number,
     public directoriesToCleanup: string[],
     public logger: DebugLogger,
@@ -58,7 +66,7 @@ export class TestContext {
   static async new(
     logger: DebugLogger,
     worldState: 'native' | 'legacy' = 'native',
-    proverCount = 4,
+    agentCount = 4,
     createProver: (bbConfig: BBProverConfig) => Promise<ServerCircuitProver> = _ =>
       Promise.resolve(new TestCircuitProver(new NoopTelemetryClient(), new WASMSimulator())),
     blockNumber = 3,
@@ -68,10 +76,6 @@ export class TestContext {
 
     const worldStateDB = mock<WorldStateDB>();
     const telemetry = new NoopTelemetryClient();
-
-    // Separated dbs for public processor and prover - see public_processor for context
-    let publicDb: MerkleTreeWriteOperations;
-    let proverDb: MerkleTreeWriteOperations;
 
     if (worldState === 'native') {
       const ws = await NativeWorldStateService.tmp();
@@ -117,12 +121,15 @@ export class TestContext {
       directoriesToCleanup.push(config.directoryToCleanup);
     }
 
-    const queue = new MemoryProvingQueue(telemetry);
-    const orchestrator = new ProvingOrchestrator(proverDb, queue, telemetry, Fr.ZERO);
-    const agent = new ProverAgent(localProver, proverCount);
+    const brokerDatabase = new InMemoryBrokerDatabase();
+    const broker = new ProvingBroker(brokerDatabase);
+    const proofStore = new InlineProofStore();
+    const agents = times(agentCount, () => new ProvingAgent(broker, proofStore, localProver));
+    const proverCache = new InMemoryProverCache();
+    const orchestrator = new ProvingOrchestrator(proverDb, broker, telemetry, Fr.ZERO, proverCache, proofStore);
 
-    queue.start();
-    agent.start(queue);
+    await broker.start();
+    agents.map(agent => agent.start());
 
     return new this(
       publicTxSimulator,
@@ -132,8 +139,12 @@ export class TestContext {
       globalVariables,
       proverDb,
       localProver,
-      agent,
+      broker,
+      brokerDatabase,
+      agents,
       orchestrator,
+      proverCache,
+      proofStore,
       blockNumber,
       directoriesToCleanup,
       logger,
@@ -141,7 +152,8 @@ export class TestContext {
   }
 
   async cleanup() {
-    await this.proverAgent.stop();
+    await Promise.all(this.agents.map(agent => agent.stop()));
+    await this.provingBroker.stop();
     for (const dir of this.directoriesToCleanup.filter(x => x !== '')) {
       await fs.rm(dir, { recursive: true, force: true });
     }

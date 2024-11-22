@@ -6,7 +6,7 @@ import { jest } from '@jest/globals';
 
 import { ProvingBroker } from './proving_broker.js';
 import { type ProvingBrokerDatabase } from './proving_broker_database.js';
-import { InMemoryDatabase } from './proving_broker_database/memory.js';
+import { InMemoryBrokerDatabase } from './proving_broker_database/memory.js';
 import { PersistedProvingJobDatabase } from './proving_broker_database/persisted.js';
 
 beforeAll(() => {
@@ -14,7 +14,7 @@ beforeAll(() => {
 });
 
 describe.each([
-  () => ({ database: new InMemoryDatabase(), cleanup: undefined }),
+  () => ({ database: new InMemoryBrokerDatabase(), cleanup: undefined }),
   () => {
     const store = openTmpStore(true);
     const database = new PersistedProvingJobDatabase(store);
