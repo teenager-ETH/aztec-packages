@@ -12,7 +12,7 @@ import { createDebugLogger } from '@aztec/foundation/log';
 import { RunningPromise } from '@aztec/foundation/running-promise';
 import { elapsed } from '@aztec/foundation/timer';
 
-import { InlineProofIODatabase } from '../proving_broker/proof_input_output_database.js';
+import { SimpleProofStore } from '../proving_broker/proof_store.js';
 
 const PRINT_THRESHOLD_NS = 6e10; // 60 seconds
 
@@ -29,7 +29,7 @@ export class ProverAgent implements ProverAgentApi {
     }
   >();
   private runningPromise?: RunningPromise;
-  private proofInputsDatabase = new InlineProofIODatabase();
+  private proofInputsDatabase = new SimpleProofStore();
 
   constructor(
     /** The prover implementation to defer jobs to */

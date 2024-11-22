@@ -1,9 +1,9 @@
-import { type ProofUri, ProvingJob, type ProvingJobId } from '@aztec/circuit-types';
+import { type ProofUri, ProvingJob, type ProvingJobId, ProvingJobSettledResult } from '@aztec/circuit-types';
 import { type AztecKVStore, type AztecMap } from '@aztec/kv-store';
 
-import { type ProvingJobDatabase } from '../proving_job_database.js';
+import { type ProvingBrokerDatabase } from '../proving_broker_database.js';
 
-export class PersistedProvingJobDatabase implements ProvingJobDatabase {
+export class PersistedProvingJobDatabase implements ProvingBrokerDatabase {
   private jobs: AztecMap<ProvingJobId, string>;
   private jobResults: AztecMap<ProvingJobId, string>;
 
@@ -16,11 +16,11 @@ export class PersistedProvingJobDatabase implements ProvingJobDatabase {
     await this.jobs.set(job.id, JSON.stringify(job));
   }
 
-  *allProvingJobs(): Iterable<[ProvingJob, { value: ProofUri } | { error: string } | undefined]> {
+  *allProvingJobs(): Iterable<[ProvingJob, ProvingJobSettledResult | undefined]> {
     for (const jobStr of this.jobs.values()) {
       const job = ProvingJob.parse(JSON.parse(jobStr));
       const resultStr = this.jobResults.get(job.id);
-      const result = resultStr ? JSON.parse(resultStr) : undefined;
+      const result = resultStr ? ProvingJobSettledResult.parse(JSON.parse(resultStr)) : undefined;
       yield [job, result];
     }
   }
@@ -33,10 +33,12 @@ export class PersistedProvingJobDatabase implements ProvingJobDatabase {
   }
 
   async setProvingJobError(id: ProvingJobId, err: Error): Promise<void> {
-    await this.jobResults.set(id, JSON.stringify({ error: err.message }));
+    const result: ProvingJobSettledResult = { status: 'rejected', reason: err.message };
+    await this.jobResults.set(id, JSON.stringify(result));
   }
 
   async setProvingJobResult(id: ProvingJobId, value: ProofUri): Promise<void> {
-    await this.jobResults.set(id, JSON.stringify({ value }));
+    const result: ProvingJobSettledResult = { status: 'fulfilled', value };
+    await this.jobResults.set(id, JSON.stringify(result));
   }
 }

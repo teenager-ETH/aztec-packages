@@ -22,7 +22,7 @@ import { promiseWithResolvers } from '@aztec/foundation/promise';
 import { jest } from '@jest/globals';
 
 import { MockProver } from '../test/mock_prover.js';
-import { type ProofInputOutputDatabase } from './proof_input_output_database.js';
+import { type ProofStore } from './proof_store.js';
 import { ProvingAgent } from './proving_agent.js';
 import { type ProvingJobConsumer } from './proving_broker_interface.js';
 
@@ -30,7 +30,7 @@ describe('ProvingAgent', () => {
   let prover: MockProver;
   let jobSource: jest.Mocked<ProvingJobConsumer>;
   let agent: ProvingAgent;
-  let proofDB: jest.Mocked<ProofInputOutputDatabase>;
+  let proofDB: jest.Mocked<ProofStore>;
   const agentPollIntervalMs = 1000;
 
   beforeEach(() => {

@@ -646,7 +646,7 @@ export class ProvingOrchestrator implements EpochProver {
         }
 
         const cached = await this.proofDB.getProvingJobStatus(jobId);
-        if (cached?.status === 'resolved') {
+        if (cached?.status === 'fulfilled') {
           await callback(cached.value as any);
           return;
         }
@@ -709,7 +709,7 @@ export class ProvingOrchestrator implements EpochProver {
           }
         }
 
-        await this.proofDB.setProvingJobStatus(jobId, { status: 'resolved', value: result });
+        await this.proofDB.setProvingJobStatus(jobId, { status: 'fulfilled', value: result });
 
         // const result = await request(controller.signal);
         if (!provingState?.verifyState()) {

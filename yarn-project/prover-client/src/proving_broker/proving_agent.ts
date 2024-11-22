@@ -11,7 +11,7 @@ import { randomBytes } from '@aztec/foundation/crypto';
 import { createDebugLogger } from '@aztec/foundation/log';
 import { RunningPromise } from '@aztec/foundation/running-promise';
 
-import { type ProofInputOutputDatabase } from './proof_input_output_database.js';
+import { type ProofStore } from './proof_store.js';
 import { type ProvingJobConsumer } from './proving_broker_interface.js';
 import { ProvingJobController, ProvingJobControllerStatus } from './proving_job_controller.js';
 
@@ -24,9 +24,9 @@ export class ProvingAgent {
 
   constructor(
     /** The source of proving jobs */
-    private jobSource: ProvingJobConsumer,
+    private broker: ProvingJobConsumer,
     /** Database holding proof inputs and outputs */
-    private proofInputOutputDatabase: ProofInputOutputDatabase,
+    private proofStore: ProofStore,
     /** The prover implementation to defer jobs to */
     private circuitProver: ServerCircuitProver,
     /** Optional list of allowed proof types to build */
@@ -64,13 +64,13 @@ export class ProvingAgent {
       // If during (1) the broker returns a new job that means we can cancel the current job and start the new one
       let maybeJob: { job: ProvingJob; time: number } | undefined;
       if (this.currentJobController?.getStatus() === ProvingJobControllerStatus.PROVING) {
-        maybeJob = await this.jobSource.reportProvingJobProgress(
+        maybeJob = await this.broker.reportProvingJobProgress(
           this.currentJobController.getJobId(),
           this.currentJobController.getStartedAt(),
           { allowList: this.proofAllowList },
         );
       } else {
-        maybeJob = await this.jobSource.getProvingJob({ allowList: this.proofAllowList });
+        maybeJob = await this.broker.getProvingJob({ allowList: this.proofAllowList });
       }
 
       if (!maybeJob) {
@@ -88,9 +88,9 @@ export class ProvingAgent {
       const { job, time } = maybeJob;
       let inputs: ProvingJobInputs;
       try {
-        inputs = await this.proofInputOutputDatabase.getProofInput(job.inputsUri);
+        inputs = await this.proofStore.getProofInput(job.inputsUri);
       } catch (err) {
-        await this.jobSource.reportProvingJobError(job.id, new Error('Failed to load proof inputs'), true);
+        await this.broker.reportProvingJobError(job.id, new Error('Failed to load proof inputs'), true);
         return;
       }
 
@@ -131,13 +131,13 @@ export class ProvingAgent {
     if (err) {
       const retry = err.name === ProvingError.NAME ? (err as ProvingError).retry : false;
       this.log.info(`Job id=${jobId} type=${ProvingRequestType[type]} failed err=${err.message} retry=${retry}`);
-      return this.jobSource.reportProvingJobError(jobId, err, retry);
+      return this.broker.reportProvingJobError(jobId, err, retry);
     } else if (result) {
-      const outputUri = await this.proofInputOutputDatabase.saveProofOutput(jobId, type, result);
+      const outputUri = await this.proofStore.saveProofOutput(jobId, type, result);
       this.log.info(
         `Job id=${jobId} type=${ProvingRequestType[type]} completed outputUri=${truncateString(outputUri)}`,
       );
-      return this.jobSource.reportProvingJobSuccess(jobId, outputUri);
+      return this.broker.reportProvingJobSuccess(jobId, outputUri);
     }
   };
 }

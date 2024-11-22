@@ -11,26 +11,26 @@ import { AbortError } from '@aztec/foundation/error';
 import { sleep } from '@aztec/foundation/sleep';
 import { NoopTelemetryClient } from '@aztec/telemetry-client/noop';
 
-import { InlineProofIODatabase, type ProofInputOutputDatabase } from '../proving_broker/proof_input_output_database.js';
+import { type ProofStore, SimpleProofStore } from '../proving_broker/proof_store.js';
 import { MemoryProvingQueue } from './memory-proving-queue.js';
 
 describe('MemoryProvingQueue', () => {
   let queue: MemoryProvingQueue;
   let jobTimeoutMs: number;
   let pollingIntervalMs: number;
-  let proofIO: ProofInputOutputDatabase;
+  let proofStore: ProofStore;
 
   beforeEach(() => {
     jobTimeoutMs = 100;
     pollingIntervalMs = 10;
-    proofIO = new InlineProofIODatabase();
+    proofStore = new SimpleProofStore();
     queue = new MemoryProvingQueue(
       new NoopTelemetryClient(),
       jobTimeoutMs,
       pollingIntervalMs,
       undefined,
       undefined,
-      proofIO,
+      proofStore,
     );
     queue.start();
   });
@@ -85,7 +85,7 @@ describe('MemoryProvingQueue', () => {
     const promise = queue.getBaseParityProof(inputs);
 
     const job = await queue.getProvingJob();
-    const jobInputs = await proofIO.getProofInput(job!.inputsUri);
+    const jobInputs = await proofStore.getProofInput(job!.inputsUri);
     expect(jobInputs.inputs).toEqual(inputs);
 
     const publicInputs = makeParityPublicInputs();
@@ -104,7 +104,7 @@ describe('MemoryProvingQueue', () => {
     void queue.getBaseParityProof(inputs);
 
     const job = await queue.getProvingJob();
-    const proofInput = await proofIO.getProofInput(job!.inputsUri);
+    const proofInput = await proofStore.getProofInput(job!.inputsUri);
     expect(proofInput.inputs).toEqual(inputs);
 
     const error = new Error('test error');

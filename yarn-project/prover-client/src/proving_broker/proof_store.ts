@@ -11,7 +11,7 @@ import {
 /**
  * A database for storing proof inputs and outputs.
  */
-export interface ProofInputOutputDatabase {
+export interface ProofStore {
   /**
    * Save a proof input to the database.
    * @param jobId - The ID of the job the proof input is associated with.
@@ -53,14 +53,14 @@ export interface ProofInputOutputDatabase {
   getProofOutput(uri: ProofUri): Promise<ProvingJobResult>;
 }
 
+const PREFIX = 'data:application/json;base64';
+const SEPARATOR = ',';
+const BUFFER_ENCODING = 'base64url';
+
 /**
  * An implementation of a proof input/output database that stores data inline in the URI.
  */
-export class InlineProofIODatabase implements ProofInputOutputDatabase {
-  private static readonly PREFIX = 'data:application/json;base64';
-  private static readonly SEPARATOR = ',';
-  private static readonly BUFFER_ENCODING = 'base64url';
-
+export class SimpleProofStore implements ProofStore {
   saveProofInput<T extends ProvingRequestType>(
     _id: ProvingJobId,
     type: T,
@@ -68,9 +68,7 @@ export class InlineProofIODatabase implements ProofInputOutputDatabase {
   ): Promise<ProofUri> {
     const jobInputs = { type, inputs } as ProvingJobInputs;
     return Promise.resolve(
-      (InlineProofIODatabase.PREFIX +
-        InlineProofIODatabase.SEPARATOR +
-        Buffer.from(JSON.stringify(jobInputs)).toString(InlineProofIODatabase.BUFFER_ENCODING)) as ProofUri,
+      (PREFIX + SEPARATOR + Buffer.from(JSON.stringify(jobInputs)).toString(BUFFER_ENCODING)) as ProofUri,
     );
   }
 
@@ -81,31 +79,25 @@ export class InlineProofIODatabase implements ProofInputOutputDatabase {
   ): Promise<ProofUri> {
     const jobResult = { type, result } as ProvingJobResult;
     return Promise.resolve(
-      (InlineProofIODatabase.PREFIX +
-        InlineProofIODatabase.SEPARATOR +
-        Buffer.from(JSON.stringify(jobResult)).toString(InlineProofIODatabase.BUFFER_ENCODING)) as ProofUri,
+      (PREFIX + SEPARATOR + Buffer.from(JSON.stringify(jobResult)).toString(BUFFER_ENCODING)) as ProofUri,
     );
   }
 
   getProofInput(uri: ProofUri): Promise<ProvingJobInputs> {
-    const [prefix, data] = uri.split(InlineProofIODatabase.SEPARATOR);
-    if (prefix !== InlineProofIODatabase.PREFIX) {
+    const [prefix, data] = uri.split(SEPARATOR);
+    if (prefix !== PREFIX) {
       throw new Error('Invalid proof input URI: ' + prefix);
     }
 
-    return Promise.resolve(
-      ProvingJobInputs.parse(JSON.parse(Buffer.from(data, InlineProofIODatabase.BUFFER_ENCODING).toString())),
-    );
+    return Promise.resolve(ProvingJobInputs.parse(JSON.parse(Buffer.from(data, BUFFER_ENCODING).toString())));
   }
 
   getProofOutput(uri: ProofUri): Promise<ProvingJobResult> {
-    const [prefix, data] = uri.split(InlineProofIODatabase.SEPARATOR);
-    if (prefix !== InlineProofIODatabase.PREFIX) {
+    const [prefix, data] = uri.split(SEPARATOR);
+    if (prefix !== PREFIX) {
       throw new Error('Invalid proof output URI: ' + prefix);
     }
 
-    return Promise.resolve(
-      ProvingJobResult.parse(JSON.parse(Buffer.from(data, InlineProofIODatabase.BUFFER_ENCODING).toString())),
-    );
+    return Promise.resolve(ProvingJobResult.parse(JSON.parse(Buffer.from(data, BUFFER_ENCODING).toString())));
   }
 }

@@ -5,9 +5,9 @@ import { openTmpStore } from '@aztec/kv-store/utils';
 import { jest } from '@jest/globals';
 
 import { ProvingBroker } from './proving_broker.js';
-import { type ProvingJobDatabase } from './proving_job_database.js';
-import { InMemoryDatabase } from './proving_job_database/memory.js';
-import { PersistedProvingJobDatabase } from './proving_job_database/persisted.js';
+import { type ProvingBrokerDatabase } from './proving_broker_database.js';
+import { InMemoryDatabase } from './proving_broker_database/memory.js';
+import { PersistedProvingJobDatabase } from './proving_broker_database/persisted.js';
 
 beforeAll(() => {
   jest.useFakeTimers();
@@ -25,7 +25,7 @@ describe.each([
   let broker: ProvingBroker;
   let jobTimeoutSec: number;
   let maxRetries: number;
-  let database: ProvingJobDatabase;
+  let database: ProvingBrokerDatabase;
   let cleanup: undefined | (() => Promise<void> | void);
 
   const now = () => Math.floor(Date.now() / 1000);
@@ -156,7 +156,7 @@ describe.each([
       await broker.reportProvingJobSuccess(provingJob.id, value);
 
       const status = await broker.getProvingJobStatus(provingJob.id);
-      expect(status).toEqual({ status: 'resolved', value });
+      expect(status).toEqual({ status: 'fulfilled', value });
     });
 
     it('returns job error if failed', async () => {
@@ -172,7 +172,7 @@ describe.each([
       await broker.reportProvingJobError(provingJob.id, error);
 
       const status = await broker.getProvingJobStatus(provingJob.id);
-      expect(status).toEqual({ status: 'rejected', error: String(error) });
+      expect(status).toEqual({ status: 'rejected', reason: String(error) });
     });
   });
 
@@ -529,12 +529,12 @@ describe.each([
       // inform the agent of the job completion
 
       await expect(broker.reportProvingJobSuccess(job1.id, makeOutputsUri())).resolves.toBeUndefined();
-      await assertJobStatus(job1.id, 'resolved');
+      await assertJobStatus(job1.id, 'fulfilled');
 
       // make sure the the broker sends the next job to the agent
       await getAndAssertNextJobId(job2.id);
 
-      await assertJobStatus(job1.id, 'resolved');
+      await assertJobStatus(job1.id, 'fulfilled');
       await assertJobStatus(job2.id, 'in-progress');
     });
 
@@ -557,7 +557,7 @@ describe.each([
       await getAndAssertNextJobId(id1);
       await assertJobStatus(id1, 'in-progress');
       await broker.reportProvingJobSuccess(id1, makeOutputsUri());
-      await assertJobStatus(id1, 'resolved');
+      await assertJobStatus(id1, 'fulfilled');
 
       await getAndAssertNextJobId(id2);
       await assertJobStatus(id2, 'in-progress');
@@ -582,7 +582,7 @@ describe.each([
       });
 
       await broker.reportProvingJobSuccess(id1, makeOutputsUri());
-      await assertJobStatus(id1, 'resolved');
+      await assertJobStatus(id1, 'fulfilled');
 
       await broker.reportProvingJobError(id2, new Error('test error'));
       await assertJobStatus(id2, 'rejected');
@@ -726,7 +726,7 @@ describe.each([
 
       await expect(broker.getProvingJobStatus(id)).resolves.toEqual({
         status: 'rejected',
-        error: String(new Error('test error')),
+        reason: String(new Error('test error')),
       });
     });
 
@@ -744,7 +744,7 @@ describe.each([
       await broker.reportProvingJobError(id, new Error('test error'), false);
       await expect(broker.getProvingJobStatus(id)).resolves.toEqual({
         status: 'rejected',
-        error: String(new Error('test error')),
+        reason: String(new Error('test error')),
       });
     });
   });
@@ -829,12 +829,12 @@ describe.each([
       await broker.start();
 
       await expect(broker.getProvingJobStatus(id1)).resolves.toEqual({
-        status: 'resolved',
+        status: 'fulfilled',
         value: expect.any(String),
       });
 
       await expect(broker.getProvingJobStatus(id2)).resolves.toEqual({
-        status: 'resolved',
+        status: 'fulfilled',
         value: expect.any(String),
       });
     });
@@ -860,7 +860,7 @@ describe.each([
 
       await broker.start();
 
-      await assertJobStatus(id1, 'resolved');
+      await assertJobStatus(id1, 'fulfilled');
       await assertJobStatus(id2, 'in-queue');
       await getAndAssertNextJobId(id2);
     });
@@ -886,7 +886,7 @@ describe.each([
 
       await broker.start();
 
-      await assertJobStatus(id1, 'resolved');
+      await assertJobStatus(id1, 'fulfilled');
       await assertJobStatus(id2, 'in-queue');
 
       jest.spyOn(database, 'deleteProvingJobAndResult');
@@ -948,7 +948,7 @@ describe.each([
       await broker.enqueueProvingJob(job);
 
       await broker.reportProvingJobSuccess(job.id, makeOutputsUri());
-      await assertJobStatus(job.id, 'resolved');
+      await assertJobStatus(job.id, 'fulfilled');
       expect(database.setProvingJobResult).toHaveBeenCalledWith(job.id, expect.any(String));
     });
 

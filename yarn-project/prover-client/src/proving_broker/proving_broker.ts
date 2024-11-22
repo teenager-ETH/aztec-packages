@@ -2,6 +2,7 @@ import {
   type ProofUri,
   type ProvingJob,
   type ProvingJobId,
+  type ProvingJobSettledResult,
   type ProvingJobStatus,
   ProvingRequestType,
 } from '@aztec/circuit-types';
@@ -11,8 +12,8 @@ import { PriorityMemoryQueue } from '@aztec/foundation/queue';
 
 import assert from 'assert';
 
+import { type ProvingBrokerDatabase } from './proving_broker_database.js';
 import type { ProvingJobConsumer, ProvingJobFilter, ProvingJobProducer } from './proving_broker_interface.js';
-import { type ProvingJobDatabase } from './proving_job_database.js';
 
 type InProgressMetadata = {
   id: ProvingJobId;
@@ -53,7 +54,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
   // this is fine because this broker is the only one that can modify the database
   private jobsCache = new Map<ProvingJobId, ProvingJob>();
   // as above, but for results
-  private resultsCache = new Map<ProvingJobId, { value: ProofUri } | { error: string }>();
+  private resultsCache = new Map<ProvingJobId, ProvingJobSettledResult>();
 
   // keeps track of which jobs are currently being processed
   // in the event of a crash this information is lost, but that's ok
@@ -64,8 +65,8 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
   // keep track of which proving job has been retried
   private retries = new Map<ProvingJobId, number>();
 
-  // keep track of jobs and when they finish
-  private promises = new Map<ProvingJobId, PromiseWithResolvers<{ value: ProofUri } | { error: string }>>();
+  // a map of promises that will be resolved when a job is settled
+  private promises = new Map<ProvingJobId, PromiseWithResolvers<ProvingJobSettledResult>>();
 
   private timeoutPromise: RunningPromise;
   private timeSource = () => Math.floor(Date.now() / 1000);
@@ -73,7 +74,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
   private maxRetries: number;
 
   public constructor(
-    private database: ProvingJobDatabase,
+    private database: ProvingBrokerDatabase,
     { jobTimeoutSec = 30, timeoutIntervalSec = 10, maxRetries = 3 }: ProofRequestBrokerConfig = {},
     private logger = createDebugLogger('aztec:prover-client:proving-broker'),
   ) {
@@ -118,8 +119,12 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     this.enqueueJobInternal(job);
   }
 
-  public waitForJobToSettle(id: ProvingJobId): Promise<{ value: ProofUri } | { error: string }> {
-    return this.promises.get(id)!.promise;
+  public waitForJobToSettle(id: ProvingJobId): Promise<ProvingJobSettledResult> {
+    const promiseWithResolvers = this.promises.get(id);
+    if (!promiseWithResolvers) {
+      return Promise.resolve({ status: 'rejected', reason: `Job ${id} not found` });
+    }
+    return promiseWithResolvers.promise;
   }
 
   public async removeAndCancelProvingJob(id: ProvingJobId): Promise<void> {
@@ -127,15 +132,17 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     await this.database.deleteProvingJobAndResult(id);
 
     this.jobsCache.delete(id);
+    this.promises.delete(id);
     this.resultsCache.delete(id);
     this.inProgress.delete(id);
     this.retries.delete(id);
   }
 
-  // eslint-disable-next-line require-await
-  public async getProvingJobStatus(id: ProvingJobId): Promise<ProvingJobStatus> {
+  public getProvingJobStatus(id: ProvingJobId): Promise<ProvingJobStatus> {
     const result = this.resultsCache.get(id);
-    if (!result) {
+    if (result) {
+      return Promise.resolve(result);
+    } else {
       // no result yet, check if we know the item
       const item = this.jobsCache.get(id);
 
@@ -145,10 +152,6 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
       }
 
       return Promise.resolve({ status: this.inProgress.has(id) ? 'in-progress' : 'in-queue' });
-    } else if ('value' in result) {
-      return Promise.resolve({ status: 'resolved', value: result.value });
-    } else {
-      return Promise.resolve({ status: 'rejected', error: result.error });
     }
   }
 
@@ -212,9 +215,12 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     this.logger.debug(
       `Marking proving job id=${id} type=${ProvingRequestType[item.type]} totalAttempts=${retries + 1} as failed`,
     );
+
     await this.database.setProvingJobError(id, err);
-    this.resultsCache.set(id, { error: String(err) });
-    this.promises.get(id)!.resolve({ error: String(err) });
+
+    const result: ProvingJobSettledResult = { status: 'rejected', reason: String(err) };
+    this.resultsCache.set(id, result);
+    this.promises.get(id)!.resolve(result);
   }
 
   reportProvingJobProgress<F extends ProvingRequestType[]>(
@@ -284,9 +290,12 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     this.logger.debug(
       `Proving job complete id=${id} type=${ProvingRequestType[item.type]} totalAttempts=${retries + 1}`,
     );
+
     await this.database.setProvingJobResult(id, value);
-    this.resultsCache.set(id, { value });
-    this.promises.get(id)!.resolve({ value });
+
+    const result: ProvingJobSettledResult = { status: 'fulfilled', value };
+    this.resultsCache.set(id, result);
+    this.promises.get(id)!.resolve(result);
   }
 
   private timeoutCheck = () => {

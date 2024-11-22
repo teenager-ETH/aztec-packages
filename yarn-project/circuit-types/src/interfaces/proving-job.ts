@@ -258,11 +258,29 @@ export function makeProvingRequestResult(
   return { type, result } as ProvingJobResult;
 }
 
+export const ProvingJobFulfilledResult = z.object({
+  status: z.literal('fulfilled'),
+  value: ProofUri,
+});
+export type ProvingJobFulfilledResult = z.infer<typeof ProvingJobFulfilledResult>;
+
+export const ProvingJobRejectedResult = z.object({
+  status: z.literal('rejected'),
+  reason: z.string(),
+});
+export type ProvingJobRejectedResult = z.infer<typeof ProvingJobRejectedResult>;
+
+export const ProvingJobSettledResult = z.discriminatedUnion('status', [
+  ProvingJobFulfilledResult,
+  ProvingJobRejectedResult,
+]);
+export type ProvingJobSettledResult = z.infer<typeof ProvingJobSettledResult>;
+
 export const ProvingJobStatus = z.discriminatedUnion('status', [
   z.object({ status: z.literal('in-queue') }),
   z.object({ status: z.literal('in-progress') }),
   z.object({ status: z.literal('not-found') }),
-  z.object({ status: z.literal('resolved'), value: ProofUri }),
-  z.object({ status: z.literal('rejected'), error: z.string() }),
+  ProvingJobFulfilledResult,
+  ProvingJobRejectedResult,
 ]);
 export type ProvingJobStatus = z.infer<typeof ProvingJobStatus>;

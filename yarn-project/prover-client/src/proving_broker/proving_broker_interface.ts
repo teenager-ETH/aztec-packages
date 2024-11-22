@@ -2,6 +2,7 @@ import {
   type ProofUri,
   type ProvingJob,
   type ProvingJobId,
+  type ProvingJobSettledResult,
   type ProvingJobStatus,
   type ProvingRequestType,
 } from '@aztec/circuit-types';
@@ -32,7 +33,7 @@ export interface ProvingJobProducer {
    * Waits for the job to settle and returns to the result
    * @param id - The ID of the job to get the status of
    */
-  waitForJobToSettle(id: ProvingJobId): Promise<{ value: ProofUri } | { error: string }>;
+  waitForJobToSettle(id: ProvingJobId): Promise<ProvingJobSettledResult>;
 }
 
 export interface ProvingJobFilter<T extends ProvingRequestType[]> {

@@ -37,7 +37,7 @@ import { type PromiseWithResolvers, RunningPromise, promiseWithResolvers } from 
 import { PriorityMemoryQueue } from '@aztec/foundation/queue';
 import { type TelemetryClient } from '@aztec/telemetry-client';
 
-import { InlineProofIODatabase, type ProofInputOutputDatabase } from '../proving_broker/proof_input_output_database.js';
+import { type ProofStore, SimpleProofStore } from '../proving_broker/proof_store.js';
 import { ProvingQueueMetrics } from './queue_metrics.js';
 
 type ProvingJobWithResolvers<T extends ProvingRequestType = ProvingRequestType> = ProvingJob &
@@ -73,7 +73,7 @@ export class MemoryProvingQueue implements ServerCircuitProver, ProvingJobSource
     pollingIntervalMs = 1000,
     private generateId = defaultIdGenerator,
     private timeSource = defaultTimeSource,
-    private proofInputsDB: ProofInputOutputDatabase = new InlineProofIODatabase(),
+    private proofStore: ProofStore = new SimpleProofStore(),
   ) {
     this.metrics = new ProvingQueueMetrics(client, 'MemoryProvingQueue');
     this.runningPromise = new RunningPromise(this.poll, pollingIntervalMs);
@@ -233,7 +233,7 @@ export class MemoryProvingQueue implements ServerCircuitProver, ProvingJobSource
 
     const { promise, resolve, reject } = promiseWithResolvers<ProvingRequestResultFor<T>>();
     const id = this.generateId();
-    const inputsUri = await this.proofInputsDB.saveProofInput(id, type, inputs);
+    const inputsUri = await this.proofStore.saveProofInput(id, type, inputs);
     const item: ProvingJobWithResolvers<T> = {
       id,
       type,

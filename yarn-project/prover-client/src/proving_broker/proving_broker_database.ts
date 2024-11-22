@@ -1,9 +1,9 @@
-import { type ProofUri, type ProvingJob, type ProvingJobId } from '@aztec/circuit-types';
+import { type ProofUri, type ProvingJob, type ProvingJobId, type ProvingJobSettledResult } from '@aztec/circuit-types';
 
 /**
  * A database for storing proof requests and their results
  */
-export interface ProvingJobDatabase {
+export interface ProvingBrokerDatabase {
   /**
    * Saves a proof request so it can be retrieved later
    * @param request - The proof request to save
@@ -19,7 +19,7 @@ export interface ProvingJobDatabase {
   /**
    * Returns an iterator over all saved proving jobs
    */
-  allProvingJobs(): Iterable<[ProvingJob, { value: ProofUri } | { error: string } | undefined]>;
+  allProvingJobs(): Iterable<[ProvingJob, ProvingJobSettledResult | undefined]>;
 
   /**
    * Saves the result of a proof request

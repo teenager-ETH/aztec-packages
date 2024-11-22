@@ -1,16 +1,16 @@
-import type { ProofUri, ProvingJob, ProvingJobId } from '@aztec/circuit-types';
+import type { ProofUri, ProvingJob, ProvingJobId, ProvingJobSettledResult } from '@aztec/circuit-types';
 
-import { type ProvingJobDatabase } from '../proving_job_database.js';
+import { type ProvingBrokerDatabase } from '../proving_broker_database.js';
 
-export class InMemoryDatabase implements ProvingJobDatabase {
+export class InMemoryDatabase implements ProvingBrokerDatabase {
   private jobs = new Map<ProvingJobId, ProvingJob>();
-  private results = new Map<ProvingJobId, { value: ProofUri } | { error: string }>();
+  private results = new Map<ProvingJobId, ProvingJobSettledResult>();
 
   getProvingJob(id: ProvingJobId): ProvingJob | undefined {
     return this.jobs.get(id);
   }
 
-  getProvingJobResult(id: ProvingJobId): { value: ProofUri } | { error: string } | undefined {
+  getProvingJobResult(id: ProvingJobId): ProvingJobSettledResult | undefined {
     return this.results.get(id);
   }
 
@@ -20,12 +20,12 @@ export class InMemoryDatabase implements ProvingJobDatabase {
   }
 
   setProvingJobResult(id: ProvingJobId, value: ProofUri): Promise<void> {
-    this.results.set(id, { value });
+    this.results.set(id, { status: 'fulfilled', value });
     return Promise.resolve();
   }
 
   setProvingJobError(id: ProvingJobId, error: Error): Promise<void> {
-    this.results.set(id, { error: String(error) });
+    this.results.set(id, { status: 'rejected', reason: String(error) });
     return Promise.resolve();
   }
 
@@ -35,7 +35,7 @@ export class InMemoryDatabase implements ProvingJobDatabase {
     return Promise.resolve();
   }
 
-  *allProvingJobs(): Iterable<[ProvingJob, { value: ProofUri } | { error: string } | undefined]> {
+  *allProvingJobs(): Iterable<[ProvingJob, ProvingJobSettledResult | undefined]> {
     for (const item of this.jobs.values()) {
       yield [item, this.results.get(item.id)] as const;
     }
