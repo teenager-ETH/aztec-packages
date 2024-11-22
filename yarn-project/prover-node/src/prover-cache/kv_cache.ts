@@ -8,10 +8,10 @@ export class KVProverCache implements ProverCache {
     this.proofs = store.openMap('prover_node_proof_status');
   }
 
-  getProvingJobStatus(jobId: string): Promise<ProvingJobStatus | undefined> {
+  getProvingJobStatus(jobId: string): Promise<ProvingJobStatus> {
     const item = this.proofs.get(jobId);
     if (!item) {
-      return Promise.resolve(undefined);
+      return Promise.resolve({ status: 'not-found' });
     }
 
     return Promise.resolve(JSON.parse(item));

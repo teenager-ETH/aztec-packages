@@ -21,10 +21,11 @@ export type AztecNodeConfig = ArchiverConfig &
   ValidatorClientConfig &
   ProverClientConfig &
   WorldStateConfig &
-  Pick<ProverClientConfig, 'bbBinaryPath' | 'bbWorkingDirectory' | 'realProofs'> &
+  Pick<ProverClientConfig, 'bbBinaryPath' | 'bbWorkingDirectory'> &
   P2PConfig & {
     /** Whether the validator is disabled for this node */
     disableValidator: boolean;
+    realProofs: boolean;
   } & DataStoreConfig;
 
 export const aztecNodeConfigMappings: ConfigMappingsType<AztecNodeConfig> = {
@@ -38,6 +39,11 @@ export const aztecNodeConfigMappings: ConfigMappingsType<AztecNodeConfig> = {
   disableValidator: {
     env: 'VALIDATOR_DISABLED',
     description: 'Whether the validator is disabled for this node.',
+    ...booleanConfigHelper(),
+  },
+  realProofs: {
+    env: 'PROVER_REAL_PROOFS',
+    description: 'Whether to use real proofs or not.',
     ...booleanConfigHelper(),
   },
 };

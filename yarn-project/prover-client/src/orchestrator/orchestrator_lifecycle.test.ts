@@ -1,5 +1,5 @@
 import { type ServerCircuitProver } from '@aztec/circuit-types';
-import { Fr, NUM_BASE_PARITY_PER_ROOT_PARITY } from '@aztec/circuits.js';
+import { NUM_BASE_PARITY_PER_ROOT_PARITY } from '@aztec/circuits.js';
 import { makeGlobalVariables } from '@aztec/circuits.js/testing';
 import { createDebugLogger } from '@aztec/foundation/log';
 import { type PromiseWithResolvers, promiseWithResolvers } from '@aztec/foundation/promise';
@@ -10,9 +10,7 @@ import { jest } from '@jest/globals';
 
 import { TestCircuitProver } from '../../../bb-prover/src/test/test_circuit_prover.js';
 import { TestContext } from '../mocks/test_context.js';
-import { TestBroker } from '../test/mock_prover.js';
 import { ProvingOrchestrator } from './orchestrator.js';
-import { InMemoryProverCache } from './orchestrator_cache.js';
 
 const logger = createDebugLogger('aztec:orchestrator-lifecycle');
 
@@ -30,18 +28,7 @@ describe('prover/orchestrator/lifecycle', () => {
   describe('lifecycle', () => {
     it('cancels proving requests', async () => {
       const prover: ServerCircuitProver = new TestCircuitProver(new NoopTelemetryClient());
-      const broker = new TestBroker(1, prover);
-
-      await broker.start();
-
-      const orchestrator = new ProvingOrchestrator(
-        context.actualDb,
-        broker,
-        new NoopTelemetryClient(),
-        Fr.zero(),
-        new InMemoryProverCache(),
-        broker.getProofStore(),
-      );
+      const orchestrator = new ProvingOrchestrator(context.actualDb, prover, new NoopTelemetryClient());
 
       const spy = jest.spyOn(prover, 'getBaseParityProof');
       const deferredPromises: PromiseWithResolvers<any>[] = [];
@@ -61,8 +48,6 @@ describe('prover/orchestrator/lifecycle', () => {
 
       orchestrator.cancel();
       expect(spy.mock.calls.every(([_, signal]) => signal?.aborted)).toBeTruthy();
-
-      await broker.stop();
     });
   });
 });

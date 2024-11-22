@@ -40,7 +40,9 @@ export async function createProverCoordination(
       throw new Error('Missing dependencies for p2p prover coordination');
     }
 
-    const proofVerifier = config.realProofs ? await BBCircuitVerifier.new(config) : new TestCircuitVerifier();
+    const proofVerifier = config.proverAgentFakeProofs
+      ? new TestCircuitVerifier()
+      : await BBCircuitVerifier.new(config);
     const p2pClient = await createP2PClient(
       config,
       deps.archiver,

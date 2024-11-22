@@ -819,7 +819,7 @@ export class AztecNodeService implements AztecNode {
     this.sequencer?.updateSequencerConfig(config);
 
     if (newConfig.realProofs !== this.config.realProofs) {
-      this.proofVerifier = config.realProofs ? await BBCircuitVerifier.new(newConfig) : new TestCircuitVerifier();
+      this.proofVerifier = newConfig.realProofs ? await BBCircuitVerifier.new(newConfig) : new TestCircuitVerifier();
     }
 
     this.config = newConfig;

@@ -11,6 +11,7 @@ import { type TelemetryClient } from '@aztec/telemetry-client';
 import { NoopTelemetryClient } from '@aztec/telemetry-client/noop';
 import { createWorldStateSynchronizer } from '@aztec/world-state';
 
+import { join } from 'path';
 import { createPublicClient, getAddress, getContract, http } from 'viem';
 
 import { createBondManager } from './bond/factory.js';
@@ -23,7 +24,6 @@ import { ProverNode } from './prover-node.js';
 import { HttpQuoteProvider } from './quote-provider/http.js';
 import { SimpleQuoteProvider } from './quote-provider/simple.js';
 import { QuoteSigner } from './quote-signer.js';
-import { join } from 'path';
 
 /** Creates a new prover node given a config. */
 export async function createProverNode(
@@ -74,7 +74,7 @@ export async function createProverNode(
   const walletClient = publisher.getClient();
   const bondManager = await createBondManager(rollupContract, walletClient, config);
 
-  const cacheDir = config.cacheDir ? join(config.cacheDir, `prover_${config.proverId}`) : undefined;
+  const cacheDir = config.proverCacheDir ? join(config.proverCacheDir, `prover_${config.proverId}`) : undefined;
   const cacheManager = new ProverCacheManager(cacheDir);
 
   return new ProverNode(

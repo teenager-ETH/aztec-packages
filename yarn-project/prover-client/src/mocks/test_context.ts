@@ -32,6 +32,7 @@ import { AvmFinalizedCallResult } from '../../../simulator/src/avm/avm_contract_
 import { type AvmPersistableStateManager } from '../../../simulator/src/avm/journal/journal.js';
 import { ProvingOrchestrator } from '../orchestrator/index.js';
 import { InMemoryProverCache } from '../orchestrator/orchestrator_cache.js';
+import { CachingProverBroker } from '../proving_broker/caching_prover_broker.js';
 import { InlineProofStore, type ProofStore } from '../proving_broker/proof_store.js';
 import { ProvingAgent } from '../proving_broker/proving_agent.js';
 import { ProvingBroker } from '../proving_broker/proving_broker.js';
@@ -126,7 +127,7 @@ export class TestContext {
     const proofStore = new InlineProofStore();
     const agents = times(agentCount, () => new ProvingAgent(broker, proofStore, localProver));
     const proverCache = new InMemoryProverCache();
-    const orchestrator = new ProvingOrchestrator(proverDb, broker, telemetry, Fr.ZERO, proverCache, proofStore);
+    const orchestrator = new ProvingOrchestrator(proverDb, new CachingProverBroker(broker), telemetry, Fr.ZERO);
 
     await broker.start();
     agents.map(agent => agent.start());

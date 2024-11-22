@@ -15,7 +15,8 @@ import { AztecLmdbStore } from '../../../kv-store/src/lmdb/store.js';
 import { type ProverClientConfig } from '../config.js';
 import { ProvingOrchestrator } from '../orchestrator/orchestrator.js';
 import { InMemoryProverCache } from '../orchestrator/orchestrator_cache.js';
-import { InlineProofStore } from '../proving_broker/proof_store.js';
+import { CachingProverBroker } from '../proving_broker/caching_prover_broker.js';
+import { InlineProofStore, type ProofStore } from '../proving_broker/proof_store.js';
 import { ProvingAgent } from '../proving_broker/proving_agent.js';
 import { ProvingBroker } from '../proving_broker/proving_broker.js';
 import { InMemoryBrokerDatabase } from '../proving_broker/proving_broker_database/memory.js';
@@ -42,8 +43,13 @@ export class TxProver implements EpochProverManager {
     // so it can be reused across multiple ones and not recomputed every time.
   }
 
-  public createEpochProver(db: MerkleTreeWriteOperations, cache: ProverCache = new InMemoryProverCache()): EpochProver {
-    return new ProvingOrchestrator(db, this.broker, this.telemetry, this.config.proverId, cache, this.proofStore);
+  public createEpochProver(
+    db: MerkleTreeWriteOperations,
+    cache: ProverCache = new InMemoryProverCache(),
+    proofStore: ProofStore = new InlineProofStore(),
+  ): EpochProver {
+    const prover = new CachingProverBroker(this.broker, cache, proofStore);
+    return new ProvingOrchestrator(db, prover, this.telemetry, this.config.proverId);
   }
 
   public getProverId(): Fr {
