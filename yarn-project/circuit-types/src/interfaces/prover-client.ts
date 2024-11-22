@@ -1,88 +1,114 @@
 import { Fr } from '@aztec/circuits.js';
 import { type ConfigMappingsType, booleanConfigHelper, numberConfigHelper } from '@aztec/foundation/config';
-import { type ZodFor, schemas } from '@aztec/foundation/schemas';
+import { schemas } from '@aztec/foundation/schemas';
 
 import { z } from 'zod';
 
 import { type TxHash } from '../tx/tx_hash.js';
 import { type EpochProver } from './epoch-prover.js';
 import { type MerkleTreeReadOperations } from './merkle_tree_operations.js';
-import { type ProvingJobSource } from './proving-job-source.js';
-import { type ProvingJobStatus } from './proving-job.js';
+import { type ProvingJobStatus, ProvingRequestType } from './proving-job.js';
 
+export const ProverAgentConfig = z.object({
+  /** The number of prover agents to start */
+  proverAgentCount: z.number(),
+  /** The types of proofs the prover agent can generate */
+  proverAgentProofTypes: z.array(z.string()),
+  /** How often the prover agents poll for jobs */
+  proverAgentPollIntervalMs: z.number(),
+  /** Whether to fake proving */
+  proverAgentFakeProofs: z.boolean().optional(),
+  /** Whether fake proving takes a "real" amount of time */
+  proverAgentFakeProofDelay: z.boolean().optional(),
+});
+
+export type ProverAgentConfig = z.infer<typeof ProverAgentConfig>;
+
+export const proverAgentConfigMappings: ConfigMappingsType<ProverAgentConfig> = {
+  proverAgentCount: {
+    env: 'PROVER_AGENT_COUNT',
+    description: 'Whether this prover has a local prover agent',
+    ...numberConfigHelper(1),
+  },
+  proverAgentPollIntervalMs: {
+    env: 'PROVER_AGENT_POLL_INTERVAL_MS',
+    description: 'The interval agents poll for jobs at',
+    ...numberConfigHelper(100),
+  },
+  proverAgentProofTypes: {
+    env: 'PROVER_AGENT_PROOF_TYPES',
+    description: 'The types of proofs the prover agent can generate',
+    parseEnv: (val: string) =>
+      val
+        .split(',')
+        .map(v => ProvingRequestType[v as any])
+        .filter(Boolean),
+  },
+  proverAgentFakeProofDelay: {
+    env: 'PROVER_AGENT_FAKE_PROOF_DELAY',
+    description: 'Whether fake proving takes a "real" amount of time',
+    ...booleanConfigHelper(true),
+  },
+
+  proverAgentFakeProofs: {
+    env: 'PROVER_AGENT_FAKE_PROOFS',
+    description: 'Whether to fake proving',
+    ...booleanConfigHelper(false),
+  },
+};
+
+export const ProverBrokerConfig = z.object({
+  /** If starting a prover broker locally, the max number of retries per proving job */
+  proverBrokerJobMaxRetries: z.number(),
+  /** If starting a prover broker locally, the time after which a job times out and gets assigned to a different agent */
+  proverBrokerJobTimeoutMs: z.number(),
+  /** If starting a prover broker locally, the interval the broker checks for timed out jobs */
+  proverBrokerPollIntervalMs: z.number(),
+  /** If starting a prover broker locally, the directory to store broker data */
+  proverBrokerDataDirectory: z.string().optional(),
+});
+
+export type ProverBrokerConfig = z.infer<typeof ProverBrokerConfig>;
+
+export const proverBrokerConfigMappings: ConfigMappingsType<ProverBrokerConfig> = {
+  proverBrokerJobTimeoutMs: {
+    env: 'PROVER_BROKER_JOB_TIMEOUT_MS',
+    description: 'Jobs are retried if not kept alive for this long',
+    ...numberConfigHelper(60_000),
+  },
+  proverBrokerPollIntervalMs: {
+    env: 'PROVER_BROKER_POLL_INTERVAL_MS',
+    description: 'The interval to check job health status',
+    ...numberConfigHelper(1_000),
+  },
+  proverBrokerDataDirectory: {
+    env: 'DATA_DIRECTORY',
+    description: 'If starting a prover broker locally, the directory to store broker data',
+  },
+  proverBrokerJobMaxRetries: {
+    env: 'PROVER_BROKER_JOB_MAX_RETRIES',
+    description: 'If starting a prover broker locally, the max number of retries per proving job',
+    ...numberConfigHelper(3),
+  },
+};
 /**
  * The prover configuration.
  */
-export type ProverConfig = {
+export const ProverConfig = z.object({
   /** The URL to the Aztec node to take proving jobs from */
-  nodeUrl?: string;
-  /** Whether to construct real proofs */
-  realProofs: boolean;
-  /** Whether this prover has a local prover agent */
-  proverAgentEnabled: boolean;
-  /** The interval agents poll for jobs at */
-  proverAgentPollInterval: number;
-  /** The maximum number of proving jobs to be run in parallel */
-  proverAgentConcurrency: number;
-  /** Jobs are retried if not kept alive for this long */
-  proverJobTimeoutMs: number;
-  /** The interval to check job health status */
-  proverJobPollIntervalMs: number;
-  /** Artificial delay to introduce to all operations to the test prover. */
-  proverTestDelayMs: number;
-  /** Identifier of the prover */
-  proverId: Fr;
-  /** Where to store temporary data */
-  cacheDir?: string;
-};
-
-export const ProverConfigSchema = z.object({
   nodeUrl: z.string().optional(),
-  realProofs: z.boolean(),
-  proverAgentEnabled: z.boolean(),
-  proverAgentPollInterval: z.number(),
-  proverAgentConcurrency: z.number(),
-  proverJobTimeoutMs: z.number(),
-  proverJobPollIntervalMs: z.number(),
+  /** Identifier of the prover */
   proverId: schemas.Fr,
-  proverTestDelayMs: z.number(),
-  cacheDir: z.string().optional(),
-}) satisfies ZodFor<ProverConfig>;
+  /** An optional directory to cache data in */
+  proverCacheDir: z.string().optional(),
+});
+
+export type ProverConfig = z.infer<typeof ProverConfig>;
 
 export const proverConfigMappings: ConfigMappingsType<ProverConfig> = {
   nodeUrl: {
     env: 'AZTEC_NODE_URL',
     description: 'The URL to the Aztec node to take proving jobs from',
-  },
-  realProofs: {
-    env: 'PROVER_REAL_PROOFS',
-    description: 'Whether to construct real proofs',
-    ...booleanConfigHelper(),
-  },
-  proverAgentEnabled: {
-    env: 'PROVER_AGENT_ENABLED',
-    description: 'Whether this prover has a local prover agent',
-    ...booleanConfigHelper(true),
-  },
-  proverAgentPollInterval: {
-    env: 'PROVER_AGENT_POLL_INTERVAL_MS',
-    description: 'The interval agents poll for jobs at',
-    ...numberConfigHelper(100),
-  },
-  proverAgentConcurrency: {
-    env: 'PROVER_AGENT_CONCURRENCY',
-    description: 'The maximum number of proving jobs to be run in parallel',
-    ...numberConfigHelper(1),
-  },
-  proverJobTimeoutMs: {
-    env: 'PROVER_JOB_TIMEOUT_MS',
-    description: 'Jobs are retried if not kept alive for this long',
-    ...numberConfigHelper(60_000),
-  },
-  proverJobPollIntervalMs: {
-    env: 'PROVER_JOB_POLL_INTERVAL_MS',
-    description: 'The interval to check job health status',
-    ...numberConfigHelper(1_000),
   },
   proverId: {
     env: 'PROVER_ID',
@@ -90,12 +116,7 @@ export const proverConfigMappings: ConfigMappingsType<ProverConfig> = {
     description: 'Identifier of the prover',
     defaultValue: Fr.ZERO,
   },
-  proverTestDelayMs: {
-    env: 'PROVER_TEST_DELAY_MS',
-    description: 'Artificial delay to introduce to all operations to the test prover.',
-    ...numberConfigHelper(0),
-  },
-  cacheDir: {
+  proverCacheDir: {
     env: 'PROVER_CACHE_DIR',
     description: 'Where to store cache data generated while proving',
     defaultValue: '/tmp/aztec-prover',
@@ -130,14 +151,8 @@ export interface ProverCache {
  */
 export interface EpochProverManager {
   createEpochProver(db: MerkleTreeReadOperations, cache?: ProverCache): EpochProver;
-
   start(): Promise<void>;
-
   stop(): Promise<void>;
-
-  getProvingJobSource(): ProvingJobSource;
-
-  updateProverConfig(config: Partial<ProverConfig>): Promise<void>;
 }
 
 export class BlockProofError extends Error {

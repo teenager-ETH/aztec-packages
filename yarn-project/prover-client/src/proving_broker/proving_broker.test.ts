@@ -7,7 +7,7 @@ import { jest } from '@jest/globals';
 import { ProvingBroker } from './proving_broker.js';
 import { type ProvingBrokerDatabase } from './proving_broker_database.js';
 import { InMemoryBrokerDatabase } from './proving_broker_database/memory.js';
-import { PersistedProvingJobDatabase } from './proving_broker_database/persisted.js';
+import { KVBrokerDatabase } from './proving_broker_database/persisted.js';
 
 beforeAll(() => {
   jest.useFakeTimers();
@@ -17,7 +17,7 @@ describe.each([
   () => ({ database: new InMemoryBrokerDatabase(), cleanup: undefined }),
   () => {
     const store = openTmpStore(true);
-    const database = new PersistedProvingJobDatabase(store);
+    const database = new KVBrokerDatabase(store);
     const cleanup = () => store.close();
     return { database, cleanup };
   },
@@ -168,7 +168,7 @@ describe.each([
       };
 
       await broker.enqueueProvingJob(provingJob);
-      const error = new Error('test error');
+      const error = 'test error';
       await broker.reportProvingJobError(provingJob.id, error);
 
       const status = await broker.getProvingJobStatus(provingJob.id);
@@ -561,7 +561,7 @@ describe.each([
 
       await getAndAssertNextJobId(id2);
       await assertJobStatus(id2, 'in-progress');
-      await broker.reportProvingJobError(id2, new Error('test error'));
+      await broker.reportProvingJobError(id2, 'test error');
       await assertJobStatus(id2, 'rejected');
     });
 
@@ -584,14 +584,14 @@ describe.each([
       await broker.reportProvingJobSuccess(id1, makeOutputsUri());
       await assertJobStatus(id1, 'fulfilled');
 
-      await broker.reportProvingJobError(id2, new Error('test error'));
+      await broker.reportProvingJobError(id2, 'test error');
       await assertJobStatus(id2, 'rejected');
     });
 
     it('ignores reported job error if unknown job', async () => {
       const id = makeProvingJobId();
       await assertJobStatus(id, 'not-found');
-      await broker.reportProvingJobError(id, new Error('test error'));
+      await broker.reportProvingJobError(id, 'test error');
       await assertJobStatus(id, 'not-found');
     });
 
@@ -701,7 +701,7 @@ describe.each([
         status: 'in-progress',
       });
 
-      await broker.reportProvingJobError(provingJob.id, new Error('test error'), true);
+      await broker.reportProvingJobError(provingJob.id, 'test error', true);
 
       await expect(broker.getProvingJobStatus(provingJob.id)).resolves.toEqual({
         status: 'in-queue',
@@ -721,7 +721,7 @@ describe.each([
         await assertJobStatus(id, 'in-queue');
         await getAndAssertNextJobId(id);
         await assertJobStatus(id, 'in-progress');
-        await broker.reportProvingJobError(id, new Error('test error'), true);
+        await broker.reportProvingJobError(id, 'test error', true);
       }
 
       await expect(broker.getProvingJobStatus(id)).resolves.toEqual({
@@ -741,7 +741,7 @@ describe.each([
 
       await getAndAssertNextJobId(id);
       await assertJobStatus(id, 'in-progress');
-      await broker.reportProvingJobError(id, new Error('test error'), false);
+      await broker.reportProvingJobError(id, 'test error', false);
       await expect(broker.getProvingJobStatus(id)).resolves.toEqual({
         status: 'rejected',
         reason: String(new Error('test error')),
@@ -979,7 +979,7 @@ describe.each([
         inputsUri: makeInputsUri(),
       });
 
-      const error = new Error('test error');
+      const error = 'test error';
       await broker.reportProvingJobError(id, error);
       await assertJobStatus(id, 'rejected');
       expect(database.setProvingJobError).toHaveBeenCalledWith(id, error);
@@ -995,7 +995,7 @@ describe.each([
         blockNumber: 1,
         inputsUri: makeInputsUri(),
       });
-      await expect(broker.reportProvingJobError(id, new Error())).rejects.toThrow(new Error('db error'));
+      await expect(broker.reportProvingJobError(id, 'test error')).rejects.toThrow(new Error('db error'));
       await assertJobStatus(id, 'in-queue');
     });
 
@@ -1019,7 +1019,7 @@ describe.each([
       jest.spyOn(database, 'setProvingJobError');
       jest.spyOn(database, 'addProvingJob');
 
-      await broker.reportProvingJobError(id, new Error('test error'));
+      await broker.reportProvingJobError(id, 'test error');
 
       expect(database.setProvingJobError).not.toHaveBeenCalled();
       expect(database.addProvingJob).not.toHaveBeenCalled();

@@ -43,7 +43,7 @@ import { TxEffect } from '../tx_effect.js';
 import { type SequencerConfig, SequencerConfigSchema } from './configs.js';
 import { type L2BlockNumber, L2BlockNumberSchema } from './l2_block_number.js';
 import { NullifierMembershipWitness } from './nullifier_tree.js';
-import { type ProverConfig, ProverConfigSchema } from './prover-client.js';
+import { ProverConfig } from './prover-client.js';
 import { type ProverCoordination, ProverCoordinationApiSchema } from './prover-coordination.js';
 
 /**
@@ -535,7 +535,7 @@ export const AztecNodeApiSchema: ApiSchemaFor<AztecNode> = {
 
   isValidTx: z.function().args(Tx.schema, optional(z.boolean())).returns(z.boolean()),
 
-  setConfig: z.function().args(SequencerConfigSchema.merge(ProverConfigSchema).partial()).returns(z.void()),
+  setConfig: z.function().args(SequencerConfigSchema.merge(ProverConfig).partial()).returns(z.void()),
 
   getContractClass: z.function().args(schemas.Fr).returns(ContractClassPublicSchema.optional()),
 

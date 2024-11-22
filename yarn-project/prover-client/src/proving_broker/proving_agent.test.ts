@@ -2,6 +2,7 @@ import {
   type ProofUri,
   ProvingError,
   type ProvingJob,
+  type ProvingJobConsumer,
   type ProvingJobId,
   type ProvingJobInputs,
   ProvingRequestType,
@@ -24,7 +25,6 @@ import { jest } from '@jest/globals';
 import { MockProver } from '../test/mock_prover.js';
 import { type ProofStore } from './proof_store.js';
 import { ProvingAgent } from './proving_agent.js';
-import { type ProvingJobConsumer } from './proving_broker_interface.js';
 
 describe('ProvingAgent', () => {
   let prover: MockProver;

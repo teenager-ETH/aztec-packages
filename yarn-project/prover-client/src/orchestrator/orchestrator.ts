@@ -14,6 +14,7 @@ import {
   type ProvingJob,
   type ProvingJobId,
   type ProvingJobInputsMap,
+  type ProvingJobProducer,
   type ProvingJobResult,
   type ProvingJobResultsMap,
   ProvingRequestType,
@@ -56,7 +57,6 @@ import { Attributes, type TelemetryClient, type Tracer, trackSpan } from '@aztec
 import { inspect } from 'util';
 
 import { InlineProofStore, type ProofStore } from '../proving_broker/proof_store.js';
-import { type ProvingJobProducer } from '../proving_broker/proving_broker_interface.js';
 import {
   buildBaseRollupHints,
   buildHeaderFromCircuitOutputs,

@@ -3,7 +3,7 @@ import { type AztecKVStore, type AztecMap } from '@aztec/kv-store';
 
 import { type ProvingBrokerDatabase } from '../proving_broker_database.js';
 
-export class PersistedProvingJobDatabase implements ProvingBrokerDatabase {
+export class KVBrokerDatabase implements ProvingBrokerDatabase {
   private jobs: AztecMap<ProvingJobId, string>;
   private jobResults: AztecMap<ProvingJobId, string>;
 
@@ -32,8 +32,8 @@ export class PersistedProvingJobDatabase implements ProvingBrokerDatabase {
     });
   }
 
-  async setProvingJobError(id: ProvingJobId, err: Error): Promise<void> {
-    const result: ProvingJobSettledResult = { status: 'rejected', reason: err.message };
+  async setProvingJobError(id: ProvingJobId, reason: string): Promise<void> {
+    const result: ProvingJobSettledResult = { status: 'rejected', reason };
     await this.jobResults.set(id, JSON.stringify(result));
   }
 

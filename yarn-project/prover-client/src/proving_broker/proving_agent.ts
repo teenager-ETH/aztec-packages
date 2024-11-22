@@ -1,6 +1,7 @@
 import {
   ProvingError,
   type ProvingJob,
+  type ProvingJobConsumer,
   type ProvingJobId,
   type ProvingJobInputs,
   type ProvingJobResultsMap,
@@ -12,7 +13,6 @@ import { createDebugLogger } from '@aztec/foundation/log';
 import { RunningPromise } from '@aztec/foundation/running-promise';
 
 import { type ProofStore } from './proof_store.js';
-import { type ProvingJobConsumer } from './proving_broker_interface.js';
 import { ProvingJobController, ProvingJobControllerStatus } from './proving_job_controller.js';
 
 /**
@@ -30,7 +30,7 @@ export class ProvingAgent {
     /** The prover implementation to defer jobs to */
     private circuitProver: ServerCircuitProver,
     /** Optional list of allowed proof types to build */
-    private proofAllowList?: Array<ProvingRequestType>,
+    private proofAllowList: Array<ProvingRequestType> = [],
     /** How long to wait between jobs */
     private pollIntervalMs = 1000,
     name = randomBytes(4).toString('hex'),
@@ -90,7 +90,7 @@ export class ProvingAgent {
       try {
         inputs = await this.proofStore.getProofInput(job.inputsUri);
       } catch (err) {
-        await this.broker.reportProvingJobError(job.id, new Error('Failed to load proof inputs'), true);
+        await this.broker.reportProvingJobError(job.id, 'Failed to load proof inputs', true);
         return;
       }
 
@@ -131,7 +131,7 @@ export class ProvingAgent {
     if (err) {
       const retry = err.name === ProvingError.NAME ? (err as ProvingError).retry : false;
       this.log.info(`Job id=${jobId} type=${ProvingRequestType[type]} failed err=${err.message} retry=${retry}`);
-      return this.broker.reportProvingJobError(jobId, err, retry);
+      return this.broker.reportProvingJobError(jobId, err.message, retry);
     } else if (result) {
       const outputUri = await this.proofStore.saveProofOutput(jobId, type, result);
       this.log.info(

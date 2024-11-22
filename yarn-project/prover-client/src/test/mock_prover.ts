@@ -2,6 +2,7 @@ import {
   type ProofAndVerificationKey,
   type ProvingJob,
   type ProvingJobId,
+  type ProvingJobProducer,
   type ProvingJobSettledResult,
   type ProvingJobStatus,
   type PublicInputsAndRecursiveProof,
@@ -47,7 +48,6 @@ import { InlineProofStore, type ProofStore } from '../proving_broker/proof_store
 import { ProvingAgent } from '../proving_broker/proving_agent.js';
 import { ProvingBroker } from '../proving_broker/proving_broker.js';
 import { InMemoryBrokerDatabase } from '../proving_broker/proving_broker_database/memory.js';
-import { type ProvingJobProducer } from '../proving_broker/proving_broker_interface.js';
 
 export class TestBroker implements ProvingJobProducer {
   private broker = new ProvingBroker(new InMemoryBrokerDatabase());

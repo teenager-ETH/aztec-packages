@@ -24,8 +24,8 @@ export class InMemoryBrokerDatabase implements ProvingBrokerDatabase {
     return Promise.resolve();
   }
 
-  setProvingJobError(id: ProvingJobId, error: Error): Promise<void> {
-    this.results.set(id, { status: 'rejected', reason: String(error) });
+  setProvingJobError(id: ProvingJobId, reason: string): Promise<void> {
+    this.results.set(id, { status: 'rejected', reason });
     return Promise.resolve();
   }
 

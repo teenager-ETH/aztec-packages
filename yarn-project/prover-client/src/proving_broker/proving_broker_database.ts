@@ -35,5 +35,5 @@ export interface ProvingBrokerDatabase {
    * @param ProvingRequestType - The type of proof that was requested
    * @param err - The error that occurred while processing the proof request
    */
-  setProvingJobError(id: ProvingJobId, err: Error): Promise<void>;
+  setProvingJobError(id: ProvingJobId, err: string): Promise<void>;
 }

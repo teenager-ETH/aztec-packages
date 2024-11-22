@@ -1,7 +1,10 @@
 import {
   type ProofUri,
   type ProvingJob,
+  type ProvingJobConsumer,
+  type ProvingJobFilter,
   type ProvingJobId,
+  type ProvingJobProducer,
   type ProvingJobSettledResult,
   type ProvingJobStatus,
   ProvingRequestType,
@@ -13,7 +16,6 @@ import { PriorityMemoryQueue } from '@aztec/foundation/queue';
 import assert from 'assert';
 
 import { type ProvingBrokerDatabase } from './proving_broker_database.js';
-import type { ProvingJobConsumer, ProvingJobFilter, ProvingJobProducer } from './proving_broker_interface.js';
 
 type InProgressMetadata = {
   id: ProvingJobId;
@@ -161,8 +163,8 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
   }
 
   // eslint-disable-next-line require-await
-  async getProvingJob<T extends ProvingRequestType[]>(
-    filter: ProvingJobFilter<T> = {},
+  async getProvingJob(
+    filter: ProvingJobFilter = { allowList: [] },
   ): Promise<{ job: ProvingJob; time: number } | undefined> {
     const allowedProofs: ProvingRequestType[] =
       Array.isArray(filter.allowList) && filter.allowList.length > 0
@@ -194,7 +196,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     return undefined;
   }
 
-  async reportProvingJobError(id: ProvingJobId, err: Error, retry = false): Promise<void> {
+  async reportProvingJobError(id: ProvingJobId, err: string, retry = false): Promise<void> {
     const info = this.inProgress.get(id);
     const item = this.jobsCache.get(id);
     const retries = this.retries.get(id) ?? 0;
@@ -228,10 +230,10 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     this.promises.get(id)!.resolve(result);
   }
 
-  reportProvingJobProgress<F extends ProvingRequestType[]>(
+  reportProvingJobProgress(
     id: ProvingJobId,
     startedAt: number,
-    filter?: ProvingJobFilter<F>,
+    filter?: ProvingJobFilter,
   ): Promise<{ job: ProvingJob; time: number } | undefined> {
     const job = this.jobsCache.get(id);
     if (!job) {
