@@ -7,13 +7,14 @@ import { z } from 'zod';
 import { type TxHash } from '../tx/tx_hash.js';
 import { type EpochProver } from './epoch-prover.js';
 import { type MerkleTreeReadOperations } from './merkle_tree_operations.js';
+import { type ProvingJobConsumer } from './prover-broker.js';
 import { type ProvingJobStatus, ProvingRequestType } from './proving-job.js';
 
 export const ProverAgentConfig = z.object({
   /** The number of prover agents to start */
   proverAgentCount: z.number(),
   /** The types of proofs the prover agent can generate */
-  proverAgentProofTypes: z.array(z.string()),
+  proverAgentProofTypes: z.array(z.nativeEnum(ProvingRequestType)),
   /** How often the prover agents poll for jobs */
   proverAgentPollIntervalMs: z.number(),
   /** Whether to fake proving */
@@ -42,7 +43,7 @@ export const proverAgentConfigMappings: ConfigMappingsType<ProverAgentConfig> = 
       val
         .split(',')
         .map(v => ProvingRequestType[v as any])
-        .filter(Boolean),
+        .filter(v => typeof v === 'number'),
   },
   proverAgentFakeProofDelay: {
     env: 'PROVER_AGENT_FAKE_PROOF_DELAY',
@@ -153,6 +154,7 @@ export interface EpochProverManager {
   createEpochProver(db: MerkleTreeReadOperations, cache?: ProverCache): EpochProver;
   start(): Promise<void>;
   stop(): Promise<void>;
+  getProvingJobSource(): ProvingJobConsumer;
 }
 
 export class BlockProofError extends Error {

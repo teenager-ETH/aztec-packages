@@ -123,4 +123,8 @@ export class TxProver implements EpochProverManager {
     await prover.start();
     return prover;
   }
+
+  getProvingJobSource(): ProvingJobConsumer {
+    return this.jobSource;
+  }
 }

@@ -185,7 +185,7 @@ export class FullProverTest {
 
       this.logger.debug(`Configuring the node for real proofs...`);
       await this.aztecNode.setConfig({
-        realProofs: true,
+        // realProofs: true,
         minTxsPerBlock: this.minNumberOfTxsPerBlock,
       });
     } else {
@@ -265,8 +265,8 @@ export class FullProverTest {
       proverCoordinationNodeUrl: undefined,
       dataDirectory: undefined,
       proverId: new Fr(81),
-      realProofs: this.realProofs,
-      proverAgentConcurrency: 2,
+      proverAgentFakeProofs: !this.realProofs,
+      proverAgentCount: 2,
       publisherPrivateKey: `0x${proverNodePrivateKey!.toString('hex')}`,
       proverNodeMaxPendingJobs: 100,
       proverNodePollingIntervalMs: 100,

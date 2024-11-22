@@ -2,8 +2,13 @@ import { BBNativeRollupProver, TestCircuitProver } from '@aztec/bb-prover';
 import { ProverAgentApiSchema, type ServerCircuitProver } from '@aztec/circuit-types';
 import { type NamespacedApiHandlers } from '@aztec/foundation/json-rpc/server';
 import { type LogFn } from '@aztec/foundation/log';
-import { type ProverClientConfig, proverClientConfigMappings } from '@aztec/prover-client';
-import { ProverAgent, createProvingJobSourceClient } from '@aztec/prover-client/prover-agent';
+import {
+  InlineProofStore,
+  type ProverClientConfig,
+  ProvingAgent,
+  createProvingJobConsumer,
+  proverClientConfigMappings,
+} from '@aztec/prover-client';
 import {
   type TelemetryClientConfig,
   createAndStartTelemetryClient,
@@ -19,32 +24,41 @@ export async function startProverAgent(
   logger: LogFn,
 ) {
   const proverConfig = extractRelevantOptions<ProverClientConfig>(options, proverClientConfigMappings, 'prover');
-  const proverJobSourceUrl = proverConfig.proverJobSourceUrl ?? proverConfig.nodeUrl;
+  const proverJobSourceUrl = proverConfig.proverBrokerUrl ?? proverConfig.nodeUrl;
   if (!proverJobSourceUrl) {
     throw new Error('Starting prover without PROVER_JOB_SOURCE_URL is not supported');
   }
 
   logger(`Connecting to prover at ${proverJobSourceUrl}`);
-  const source = createProvingJobSourceClient(proverJobSourceUrl);
+  const source = createProvingJobConsumer(proverJobSourceUrl);
 
   const telemetryConfig = extractRelevantOptions<TelemetryClientConfig>(options, telemetryClientConfigMappings, 'tel');
   const telemetry = await createAndStartTelemetryClient(telemetryConfig);
 
   let circuitProver: ServerCircuitProver;
-  if (proverConfig.realProofs) {
+  if (!proverConfig.proverAgentFakeProofs) {
     if (!proverConfig.acvmBinaryPath || !proverConfig.bbBinaryPath) {
       throw new Error('Cannot start prover without simulation or native prover options');
     }
     circuitProver = await BBNativeRollupProver.new(proverConfig, telemetry);
   } else {
-    circuitProver = new TestCircuitProver(telemetry, undefined, proverConfig);
+    circuitProver = new TestCircuitProver(telemetry, undefined, {
+      proverTestDelayMs: proverConfig.proverAgentFakeProofDelay ? 1000 : 0,
+    });
   }
 
-  const { proverAgentConcurrency, proverAgentPollInterval } = proverConfig;
-  const agent = new ProverAgent(circuitProver, proverAgentConcurrency, proverAgentPollInterval);
-  agent.start(source);
+  const { proverAgentPollIntervalMs } = proverConfig;
+  const agent = new ProvingAgent(
+    source,
+    new InlineProofStore(),
+    circuitProver,
+    proverConfig.proverAgentProofTypes,
+    proverAgentPollIntervalMs,
+  );
 
-  logger(`Started prover agent with concurrency limit of ${proverAgentConcurrency}`);
+  agent.start();
+
+  logger(`Started prover agent`);
 
   services.prover = [agent, ProverAgentApiSchema];
   signalHandlers.push(() => agent.stop());

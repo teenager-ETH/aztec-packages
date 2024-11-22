@@ -13,6 +13,7 @@ import { type Gas, type GlobalVariables, Header } from '@aztec/circuits.js';
 import { times } from '@aztec/foundation/collection';
 import { Fr } from '@aztec/foundation/fields';
 import { type DebugLogger } from '@aztec/foundation/log';
+import { openTmpStore } from '@aztec/kv-store/utils';
 import {
   PublicProcessor,
   PublicTxSimulator,
@@ -21,6 +22,7 @@ import {
   type WorldStateDB,
 } from '@aztec/simulator';
 import { NoopTelemetryClient } from '@aztec/telemetry-client/noop';
+import { MerkleTrees } from '@aztec/world-state';
 import { NativeWorldStateService } from '@aztec/world-state/native';
 
 import { jest } from '@jest/globals';
@@ -77,6 +79,10 @@ export class TestContext {
 
     const worldStateDB = mock<WorldStateDB>();
     const telemetry = new NoopTelemetryClient();
+
+    // Separated dbs for public processor and prover - see public_processor for context
+    let publicDb: MerkleTreeWriteOperations;
+    let proverDb: MerkleTreeWriteOperations;
 
     if (worldState === 'native') {
       const ws = await NativeWorldStateService.tmp();

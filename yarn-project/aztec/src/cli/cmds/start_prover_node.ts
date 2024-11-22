@@ -25,7 +25,7 @@ export async function startProverNode(
     process.exit(1);
   }
 
-  const proverConfig = {
+  const proverConfig: ProverNodeConfig = {
     ...getProverNodeConfigFromEnv(), // get default config from env
     ...extractRelevantOptions<ProverNodeConfig>(options, proverNodeConfigMappings, 'proverNode'), // override with command line options
   };
@@ -37,10 +37,10 @@ export async function startProverNode(
 
   if (options.prover || options.proverAgentEnabled) {
     userLog(`Running prover node with local prover agent.`);
-    proverConfig.proverAgentEnabled = true;
+    proverConfig.proverAgentCount = 1;
   } else {
     userLog(`Running prover node without local prover agent. Connect one or more prover agents to this node.`);
-    proverConfig.proverAgentEnabled = false;
+    proverConfig.proverAgentCount = 0;
   }
 
   if (!proverConfig.publisherPrivateKey || proverConfig.publisherPrivateKey === NULL_KEY) {

@@ -23,6 +23,7 @@ import {
   type SiblingPath,
   SimulationError,
   type Tx,
+  TxEffect,
   type TxExecutionRequest,
   type TxHash,
   TxProvingResult,
@@ -617,7 +618,7 @@ export class PXEService implements PXE {
     return this.node.getTxReceipt(txHash);
   }
 
-  public getTxEffect(txHash: TxHash) {
+  public getTxEffect(txHash: TxHash): Promise<InBlock<TxEffect> | undefined> {
     return this.node.getTxEffect(txHash);
   }
 

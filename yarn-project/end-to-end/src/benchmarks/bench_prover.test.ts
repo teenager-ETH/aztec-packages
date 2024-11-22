@@ -56,8 +56,8 @@ describe('benchmarks/proving', () => {
       {
         // do setup with fake proofs
         realProofs: false,
-        proverAgentConcurrency: 4,
-        proverAgentPollInterval: 10,
+        proverAgentCount: 4,
+        proverAgentPollIntervalMs: 100,
         minTxsPerBlock: 1,
       },
       {},
@@ -132,8 +132,6 @@ describe('benchmarks/proving', () => {
 
     ctx.logger.info('Stopping fake provers');
     await ctx.aztecNode.setConfig({
-      proverAgentConcurrency: 1,
-      realProofs: true,
       minTxsPerBlock: 2,
     });
 
