@@ -121,7 +121,7 @@ export interface ProverCache {
    * Retrieves the status of a proving job (if known)
    * @param jobId - The job ID
    */
-  getProvingJobStatus(jobId: string): Promise<ProvingJobStatus | undefined>;
+  getProvingJobStatus(jobId: string): Promise<ProvingJobStatus>;
 }
 
 /**

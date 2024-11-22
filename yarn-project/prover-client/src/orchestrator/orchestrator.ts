@@ -11,10 +11,12 @@ import {
   type MerkleTreeWriteOperations,
   type ProofAndVerificationKey,
   type ProverCache,
+  type ProvingJob,
+  type ProvingJobId,
   type ProvingJobInputsMap,
+  type ProvingJobResult,
   type ProvingJobResultsMap,
   ProvingRequestType,
-  type ServerCircuitProver,
 } from '@aztec/circuit-types/interfaces';
 import {
   type BaseOrMergeRollupPublicInputs,
@@ -43,6 +45,7 @@ import { padArrayEnd } from '@aztec/foundation/collection';
 import { AbortError } from '@aztec/foundation/error';
 import { createDebugLogger } from '@aztec/foundation/log';
 import { promiseWithResolvers } from '@aztec/foundation/promise';
+import { retryUntil } from '@aztec/foundation/retry';
 import { type Tuple } from '@aztec/foundation/serialize';
 import { pushTestData } from '@aztec/foundation/testing';
 import { elapsed } from '@aztec/foundation/timer';
@@ -52,6 +55,8 @@ import { Attributes, type TelemetryClient, type Tracer, trackSpan } from '@aztec
 
 import { inspect } from 'util';
 
+import { type ProofStore, SimpleProofStore } from '../proving_broker/proof_store.js';
+import { type ProvingJobProducer } from '../proving_broker/proving_broker_interface.js';
 import {
   buildBaseRollupHints,
   buildHeaderFromCircuitOutputs,
@@ -106,10 +111,11 @@ export class ProvingOrchestrator implements EpochProver {
 
   constructor(
     private db: MerkleTreeWriteOperations,
-    private prover: ServerCircuitProver,
+    private prover: ProvingJobProducer,
     telemetryClient: TelemetryClient,
     private readonly proverId: Fr = Fr.ZERO,
-    private proofDB: ProverCache = new SimpleProverCache(),
+    private cache: ProverCache = new SimpleProverCache(),
+    private proofStore: ProofStore = new SimpleProofStore(),
   ) {
     this.metrics = new ProvingOrchestratorMetrics(telemetryClient, 'ProvingOrchestrator');
   }
@@ -615,6 +621,69 @@ export class ProvingOrchestrator implements EpochProver {
     }
   }
 
+  private async enqueueAndWaitForJob(job: ProvingJob, signal: AbortSignal): Promise<ProvingJobResult> {
+    // first try the cache
+    let jobEnqueued = false;
+    try {
+      const cachedResult = await this.cache.getProvingJobStatus(job.id);
+      if (cachedResult.status === 'fulfilled') {
+        return await this.proofStore.getProofOutput(cachedResult.value);
+      } else if (cachedResult.status === 'rejected') {
+        // prefer returning a rejected promises so that we don't trigger the catch block below
+        return Promise.reject(new Error(cachedResult.reason));
+      } else if (cachedResult.status === 'in-progress' || cachedResult.status === 'in-queue') {
+        jobEnqueued = true;
+      } else {
+        jobEnqueued = false;
+      }
+    } catch (err) {
+      logger.warn(`Failed to get cached proving job id=${job.id}: ${err}. Re-running job`);
+    }
+
+    if (!jobEnqueued) {
+      try {
+        await this.cache.setProvingJobStatus(job.id, { status: 'in-queue' });
+        await this.prover.enqueueProvingJob(job);
+      } catch (err) {
+        await this.cache.setProvingJobStatus(job.id, { status: 'not-found' });
+        throw err;
+      }
+    }
+
+    // notify broker of cancelled job
+    const abortFn = async () => {
+      signal.removeEventListener('abort', abortFn);
+      await this.prover.removeAndCancelProvingJob(job.id);
+    };
+
+    signal.addEventListener('abort', abortFn);
+
+    try {
+      // loop here until the job settles
+      // NOTE: this could also terminate because the job was cancelled through event listener above
+      const result = await retryUntil(
+        () => this.prover.waitForJobToSettle(job.id),
+        `Proving job=${job.id} type=${ProvingRequestType[job.type]}`,
+        0,
+        1,
+      );
+
+      try {
+        await this.cache.setProvingJobStatus(job.id, result);
+      } catch (err) {
+        logger.warn(`Failed to cache proving job id=${job.id} resultStatus=${result.status}: ${err}`);
+      }
+
+      if (result.status === 'fulfilled') {
+        return this.proofStore.getProofOutput(result.value);
+      } else {
+        return Promise.reject(new Error(result.reason));
+      }
+    } finally {
+      signal.removeEventListener('abort', abortFn);
+    }
+  }
+
   /**
    * Enqueue a job to be scheduled
    * @param provingState - The proving state object being operated on
@@ -623,7 +692,7 @@ export class ProvingOrchestrator implements EpochProver {
    */
   private deferredProving<T extends ProvingRequestType>(
     provingState: EpochProvingState | BlockProvingState | undefined,
-    jobId: string,
+    id: ProvingJobId,
     type: T,
     inputs: ProvingJobInputsMap[T],
     callback: (result: ProvingJobResultsMap[T]) => void | Promise<void>,
@@ -645,71 +714,8 @@ export class ProvingOrchestrator implements EpochProver {
           return;
         }
 
-        const cached = await this.proofDB.getProvingJobStatus(jobId);
-        if (cached?.status === 'fulfilled') {
-          await callback(cached.value as any);
-          return;
-        }
-
-        let result: any;
-        await this.proofDB.setProvingJobStatus(jobId, { status: 'in-progress' });
-
-        switch (type) {
-          case ProvingRequestType.PRIVATE_KERNEL_EMPTY:
-            result = await this.prover.getEmptyPrivateKernelProof(inputs as any, controller.signal);
-            break;
-
-          case ProvingRequestType.PUBLIC_VM:
-            result = await this.prover.getAvmProof(inputs as any, controller.signal);
-            break;
-
-          case ProvingRequestType.TUBE_PROOF:
-            result = await this.prover.getTubeProof(inputs as any, controller.signal);
-            break;
-
-          case ProvingRequestType.PRIVATE_BASE_ROLLUP:
-            result = await this.prover.getPrivateBaseRollupProof(inputs as any, controller.signal);
-            break;
-
-          case ProvingRequestType.PUBLIC_BASE_ROLLUP:
-            result = await this.prover.getPublicBaseRollupProof(inputs as any, controller.signal);
-            break;
-
-          case ProvingRequestType.MERGE_ROLLUP:
-            result = await this.prover.getMergeRollupProof(inputs as any, controller.signal);
-            break;
-
-          case ProvingRequestType.BLOCK_ROOT_ROLLUP:
-            result = await this.prover.getBlockRootRollupProof(inputs as any, controller.signal);
-            break;
-
-          case ProvingRequestType.EMPTY_BLOCK_ROOT_ROLLUP:
-            result = await this.prover.getEmptyBlockRootRollupProof(inputs as any, controller.signal);
-            break;
-
-          case ProvingRequestType.BASE_PARITY:
-            result = await this.prover.getBaseParityProof(inputs as any, controller.signal);
-            break;
-
-          case ProvingRequestType.ROOT_PARITY:
-            result = await this.prover.getRootParityProof(inputs as any, controller.signal);
-            break;
-
-          case ProvingRequestType.BLOCK_MERGE_ROLLUP:
-            result = await this.prover.getBlockMergeRollupProof(inputs as any, controller.signal);
-            break;
-
-          case ProvingRequestType.ROOT_ROLLUP:
-            result = await this.prover.getRootRollupProof(inputs as any, controller.signal);
-            break;
-
-          default: {
-            const _: never = type;
-            break;
-          }
-        }
-
-        await this.proofDB.setProvingJobStatus(jobId, { status: 'fulfilled', value: result });
+        const inputsUri = await this.proofStore.saveProofInput(id, type, inputs);
+        const { result } = await this.enqueueAndWaitForJob({ id, type, inputsUri }, controller.signal);
 
         // const result = await request(controller.signal);
         if (!provingState?.verifyState()) {
@@ -723,7 +729,7 @@ export class ProvingOrchestrator implements EpochProver {
           return;
         }
 
-        await callback(result);
+        await callback(result as ProvingJobResultsMap[T]);
       } catch (err) {
         if (err instanceof AbortError) {
           // operation was cancelled, probably because the block was cancelled
@@ -1241,7 +1247,7 @@ function generateBlockJobId(
   level: number | bigint,
   index: number | bigint,
   type: ProvingRequestType,
-): string {
+): ProvingJobId {
   return `${epochNumber}.${blockNumber}.${level}.${index}:${ProvingRequestType[type]}`;
   // e.g. 0.1.2.0.PUBLIC_VM (epoch 0, block 1, level 2 ie txs, index 0 ie first tx, public vm)
 }
@@ -1251,7 +1257,7 @@ function generateEpochJobId(
   level: number | bigint,
   index: number | bigint,
   type: ProvingRequestType,
-): string {
+): ProvingJobId {
   return `${epochNumber}.${level}.${index}:${ProvingRequestType[type]}`;
   // e.g. 0.1.0.BLOCK_MERGE_ROLLUP for the first merge rollup between block 1 and block 2
 }

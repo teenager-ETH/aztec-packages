@@ -131,6 +131,11 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer {
     this.logger.info(`Cancelling job id=${id}`);
     await this.database.deleteProvingJobAndResult(id);
 
+    // notify listeners of the cancellation
+    if (!this.resultsCache.has(id)) {
+      this.promises.get(id)?.resolve({ status: 'rejected', reason: 'Aborted' });
+    }
+
     this.jobsCache.delete(id);
     this.promises.delete(id);
     this.resultsCache.delete(id);

@@ -10,7 +10,7 @@ export class SimpleProverCache implements ProverCache {
     return Promise.resolve();
   }
 
-  getProvingJobStatus(jobId: string): Promise<ProvingJobStatus | undefined> {
-    return Promise.resolve(this.proofs[jobId]);
+  getProvingJobStatus(jobId: string): Promise<ProvingJobStatus> {
+    return Promise.resolve(this.proofs[jobId] ?? { status: 'not-found' });
   }
 }
