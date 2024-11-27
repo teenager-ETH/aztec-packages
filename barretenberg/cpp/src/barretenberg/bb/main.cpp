@@ -377,7 +377,7 @@ void client_ivc_prove_output_all_msgpack(const std::string& bytecodePath,
 
     // Write the proof and verification keys into the working directory in  'binary' format (in practice it seems this
     // directory is passed by bb.js)
-    std::string vkPath = outputDir + "/client_ivc_vk"; // the vk of the last circuit in the stack
+    std::string vkPath = outputDir + "/client_ivc_vk";
     std::string proofPath = outputDir + "/client_ivc_proof";
 
     auto proof = ivc.prove();
@@ -508,7 +508,7 @@ void client_ivc_prove_output_all(const std::string& bytecodePath,
 
     // Write the proof and verification keys into the working directory in  'binary' format (in practice it seems this
     // directory is passed by bb.js)
-    std::string vkPath = outputPath + "/client_ivc_vk"; // the vk of the last circuit in the stack
+    std::string vkPath = outputPath + "/client_ivc_vk";
     std::string proofPath = outputPath + "/client_ivc_proof";
 
     auto proof = ivc.prove();
