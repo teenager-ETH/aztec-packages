@@ -7,7 +7,7 @@ use dep::aztec::macros::aztec;
 #[aztec]
 contract Test {
 
-    use dep::aztec::encrypted_logs::encrypted_event_emission::encode_and_encrypt_event_with_randomness_unconstrained;
+    use dep::aztec::encrypted_logs::encrypted_event_emission::encode_and_encrypt_event_unconstrained;
     use dep::aztec::encrypted_logs::encrypted_note_emission::encode_and_encrypt_note;
     use dep::aztec::prelude::{
         AztecAddress, EthAddress, FunctionSelector, Map, NoteGetterOptions, NoteViewerOptions,
@@ -15,9 +15,10 @@ contract Test {
     };
 
     use dep::aztec::protocol_types::{
-        constants::MAX_NOTE_HASH_READ_REQUESTS_PER_CALL,
+        constants::{MAX_NOTE_HASH_READ_REQUESTS_PER_CALL, PRIVATE_LOG_SIZE_IN_FIELDS},
         point::Point,
         traits::{Deserialize, Serialize},
+        utils::arrays::array_concat,
     };
 
     use dep::aztec::keys::getters::get_public_keys;
@@ -330,10 +331,8 @@ contract Test {
             value4: fields[4],
         };
 
-        event.emit(encode_and_encrypt_event_with_randomness_unconstrained(
+        event.emit(encode_and_encrypt_event_unconstrained(
             &mut context,
-            // testing only - a secret random value is passed in here to salt / mask the address
-            5,
             outgoing_viewer_ovpk_m,
             owner,
             outgoing_viewer,
@@ -346,16 +345,9 @@ contract Test {
                 .emit_array_as_encrypted_log([0, 0, 0, 0, 0], owner, outgoing_viewer, false)
                 .call(&mut context);
 
-            let otherEvent = ExampleEvent { value0: 1, value1: 2, value2: 3, value3: 4, value4: 5 };
-
-            otherEvent.emit(encode_and_encrypt_event_with_randomness_unconstrained(
-                &mut context,
-                // testing only - a randomness of 0 signals the kernels to not mask the address
-                0,
-                outgoing_viewer_ovpk_m,
-                owner,
-                outgoing_viewer,
-            ));
+            // Emit a log with non-encrypted content for testing purpose.
+            let leaky_log = array_concat(event.serialize(), [0; PRIVATE_LOG_SIZE_IN_FIELDS - 5]);
+            context.emit_private_log(leaky_log);
         }
     }
 
