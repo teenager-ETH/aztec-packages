@@ -2,7 +2,7 @@ import { MerkleTreeId } from '@aztec/circuit-types';
 import {
   type AztecAddress,
   type Gas,
-  type NullifierLeafPreimage,
+  NullifierLeafPreimage,
   type PublicCallRequest,
   type PublicDataTreeLeafPreimage,
   SerializableContractInstance,
@@ -313,7 +313,10 @@ export class AvmPersistableStateManager {
       const leafPreimage = preimage as NullifierLeafPreimage;
       const leafPath = await this.merkleTrees.getSiblingPath(MerkleTreeId.NULLIFIER_TREE, leafIndex);
 
-      assert(update == exists, 'WorldStateDB contains nullifier leaf, but merkle tree does not.... This is a bug!');
+      assert(
+        update == exists,
+        'WorldStateDB contains nullifier leaf, but merkle tree does not (or vice versa).... This is a bug!',
+      );
 
       if (exists) {
         this.log.debug(`Siloed nullifier ${siloedNullifier} exists at leafIndex=${leafIndex}`);
@@ -331,6 +334,61 @@ export class AvmPersistableStateManager {
       this.trace.traceNullifierCheck(siloedNullifier, exists);
     }
     return Promise.resolve(exists);
+  }
+
+  /**
+   * Get membership information for a siloed nullifier.
+   * @param siloedNullifier - the siloed nullifier to get membership information for
+   * @returns
+   *     - exists - whether the nullifier exists in the nullifier set
+   *     - leafOrLowLeafPreimage - the preimage of the nullifier leaf or its low-leaf if it doesn't exist
+   *     - leafOrLowLeafIndex - the leaf index of the nullifier leaf or its low-leaf if it doesn't exist
+   *     - leafOrLowLeafPath - the sibling path of the nullifier leaf or its low-leaf if it doesn't exist
+   */
+  public async getNullifierMembership(
+    siloedNullifier: Fr,
+  ): Promise<
+    [
+      /*exists=*/ boolean,
+      /*leafOrLowLeafPreimage=*/ NullifierLeafPreimage,
+      /*leafOrLowLeafIndex=*/ Fr,
+      /*leafOrLowLeafIndexPath=*/ Fr[],
+    ]
+  > {
+    const [exists, isPending, _] = await this.nullifiers.checkExists(siloedNullifier);
+    this.log.debug(`Checked siloed nullifier ${siloedNullifier} (exists=${exists}), pending=${isPending}`);
+
+    if (this.doMerkleOperations) {
+      // Get leaf if present, low leaf if absent
+      // If leaf is present, hint/trace it. Otherwise, hint/trace the low leaf.
+      const {
+        preimage,
+        index: leafIndex,
+        update,
+      } = await this.merkleTrees.getLeafOrLowLeafInfo(MerkleTreeId.NULLIFIER_TREE, siloedNullifier);
+      const leafPreimage = preimage as NullifierLeafPreimage;
+      const leafPath = await this.merkleTrees.getSiblingPath(MerkleTreeId.NULLIFIER_TREE, leafIndex);
+
+      assert(
+        update == exists,
+        'WorldStateDB contains nullifier leaf, but merkle tree does not (or vice versa).... This is a bug!',
+      );
+
+      if (exists) {
+        this.log.debug(`Siloed nullifier ${siloedNullifier} exists at leafIndex=${leafIndex}`);
+      } else {
+        // Sanity check that the leaf value is skipped by low leaf when it doesn't exist
+        assert(
+          siloedNullifier.toBigInt() > leafPreimage.nullifier.toBigInt() &&
+            siloedNullifier.toBigInt() < leafPreimage.nextNullifier.toBigInt(),
+          'Nullifier tree low leaf should skip the target leaf nullifier when the target leaf does not exist.',
+        );
+      }
+
+      return [exists, leafPreimage, new Fr(leafIndex), leafPath];
+    } else {
+      return [exists, NullifierLeafPreimage.empty(), Fr.ZERO, []];
+    }
   }
 
   /**
@@ -476,6 +534,12 @@ export class AvmPersistableStateManager {
     this.log.debug(`Getting contract instance for address ${contractAddress}`);
     const instanceWithAddress = await this.worldStateDB.getContractInstance(contractAddress);
     const exists = instanceWithAddress !== undefined;
+    const [existsInTree, leafOrLowLeafPreimage, leafOrLowLeafIndex, leafOrLowLeafPath] =
+      await this.getNullifierMembership(/*siloedNullifier=*/ contractAddress.toField());
+    assert(
+      exists == existsInTree,
+      'WorldStateDB contains contract instance, but nullifier tree does not contain contract address (or vice versa).... This is a bug!',
+    );
 
     // TODO: nullifier check!
     if (exists) {
@@ -483,12 +547,34 @@ export class AvmPersistableStateManager {
       this.log.debug(
         `Got contract instance (address=${contractAddress}): exists=${exists}, instance=${jsonStringify(instance)}`,
       );
-      this.trace.traceGetContractInstance(contractAddress, exists, instance);
+      if (this.doMerkleOperations) {
+        this.trace.traceGetContractInstance(
+          contractAddress,
+          exists,
+          instance,
+          leafOrLowLeafPreimage,
+          leafOrLowLeafIndex,
+          leafOrLowLeafPath,
+        );
+      } else {
+        this.trace.traceGetContractInstance(contractAddress, exists, instance);
+      }
 
       return Promise.resolve(instance);
     } else {
       this.log.debug(`Contract instance NOT FOUND (address=${contractAddress})`);
-      this.trace.traceGetContractInstance(contractAddress, exists);
+      if (this.doMerkleOperations) {
+        this.trace.traceGetContractInstance(
+          contractAddress,
+          exists,
+          /*instance=*/ undefined,
+          leafOrLowLeafPreimage,
+          leafOrLowLeafIndex,
+          leafOrLowLeafPath,
+        );
+      } else {
+        this.trace.traceGetContractInstance(contractAddress, exists);
+      }
       return Promise.resolve(undefined);
     }
   }
@@ -500,6 +586,12 @@ export class AvmPersistableStateManager {
     this.log.debug(`Getting bytecode for contract address ${contractAddress}`);
     const instanceWithAddress = await this.worldStateDB.getContractInstance(contractAddress);
     const exists = instanceWithAddress !== undefined;
+    const [existsInTree, leafOrLowLeafPreimage, leafOrLowLeafIndex, leafOrLowLeafPath] =
+      await this.getNullifierMembership(/*siloedNullifier=*/ contractAddress.toField());
+    assert(
+      exists == existsInTree,
+      'WorldStateDB contains contract instance, but nullifier tree does not contain contract address (or vice versa).... This is a bug!',
+    );
 
     if (exists) {
       const instance = new SerializableContractInstance(instanceWithAddress);
@@ -522,20 +614,46 @@ export class AvmPersistableStateManager {
         publicBytecodeCommitment: bytecodeCommitment,
       };
 
-      this.trace.traceGetBytecode(
-        contractAddress,
-        exists,
-        contractClass.packedBytecode,
-        instance,
-        contractClassPreimage,
-      );
+      if (this.doMerkleOperations) {
+        this.trace.traceGetBytecode(
+          contractAddress,
+          exists,
+          contractClass.packedBytecode,
+          instance,
+          contractClassPreimage,
+          leafOrLowLeafPreimage,
+          leafOrLowLeafIndex,
+          leafOrLowLeafPath,
+        );
+      } else {
+        this.trace.traceGetBytecode(
+          contractAddress,
+          exists,
+          contractClass.packedBytecode,
+          instance,
+          contractClassPreimage,
+        );
+      }
 
       return contractClass.packedBytecode;
     } else {
       // If the contract instance is not found, we assume it has not been deployed.
       // It doesnt matter what the values of the contract instance are in this case, as long as we tag it with exists=false.
       // This will hint to the avm circuit to just perform the non-membership check on the address and disregard the bytecode hash
-      this.trace.traceGetBytecode(contractAddress, exists); // bytecode, instance, class undefined
+      if (this.doMerkleOperations) {
+        this.trace.traceGetBytecode(
+          contractAddress,
+          exists,
+          /*instance=*/ undefined,
+          /*contractClass=*/ undefined,
+          /*bytecode=*/ undefined,
+          leafOrLowLeafPreimage,
+          leafOrLowLeafIndex,
+          leafOrLowLeafPath,
+        );
+      } else {
+        this.trace.traceGetBytecode(contractAddress, exists); // bytecode, instance, class undefined
+      }
       return undefined;
     }
   }

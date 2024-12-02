@@ -39,14 +39,14 @@ export function mockNoteHashExists(worldStateDB: WorldStateDB, _leafIndex: Fr, v
     if (index == _leafIndex.toBigInt()) {
       return Promise.resolve(value);
     } else {
-      // This is ok for now since the traceing functions handle it
+      // This is ok for now since the tracing functions handle it
       return Promise.resolve(undefined);
     }
   });
 }
 
 export function mockNullifierExists(worldStateDB: WorldStateDB, leafIndex: Fr, _value?: Fr) {
-  (worldStateDB as jest.Mocked<WorldStateDB>).getNullifierIndex.mockResolvedValue(leafIndex.toBigInt());
+  (worldStateDB as jest.Mocked<WorldStateDB>).getNullifierIndex.mockResolvedValueOnce(leafIndex.toBigInt());
 }
 
 export function mockL1ToL2MessageExists(
@@ -67,9 +67,9 @@ export function mockL1ToL2MessageExists(
 }
 
 export function mockGetContractInstance(worldStateDB: WorldStateDB, contractInstance: ContractInstanceWithAddress) {
-  (worldStateDB as jest.Mocked<WorldStateDB>).getContractInstance.mockResolvedValue(contractInstance);
+  (worldStateDB as jest.Mocked<WorldStateDB>).getContractInstance.mockResolvedValueOnce(contractInstance);
 }
 
 export function mockGetContractClass(worldStateDB: WorldStateDB, contractClass: ContractClassPublic) {
-  (worldStateDB as jest.Mocked<WorldStateDB>).getContractClass.mockResolvedValue(contractClass);
+  (worldStateDB as jest.Mocked<WorldStateDB>).getContractClass.mockResolvedValueOnce(contractClass);
 }
