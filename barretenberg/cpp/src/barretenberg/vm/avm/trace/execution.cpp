@@ -142,7 +142,7 @@ void show_trace_info(const auto& trace)
           100 * nonzero_elements / total_elements,
           "%)");
     const size_t non_zero_columns = [&]() {
-        bool column_is_nonzero[trace.front().SIZE];
+        std::vector<bool> column_is_nonzero(trace.front().SIZE, false);
         for (auto const& row : trace) {
             const auto row_vec = row.as_vector();
             for (size_t col = 0; col < row.SIZE; col++) {
@@ -151,7 +151,7 @@ void show_trace_info(const auto& trace)
                 }
             }
         }
-        return static_cast<size_t>(std::count(column_is_nonzero, column_is_nonzero + trace.front().SIZE, true));
+        return static_cast<size_t>(std::count(column_is_nonzero.begin(), column_is_nonzero.end(), true));
     }();
     vinfo("Number of non-zero columns: ",
           non_zero_columns,
@@ -305,7 +305,7 @@ std::vector<Row> Execution::gen_trace(AvmPublicInputs const& public_inputs,
 
     // Loop over all the public call requests
     uint8_t call_ctx = 0;
-    const auto phases = { TxExecutionPhase::SETUP, TxExecutionPhase::APP_LOGIC, TxExecutionPhase::TEARDOWN };
+    auto const phases = { TxExecutionPhase::SETUP, TxExecutionPhase::APP_LOGIC, TxExecutionPhase::TEARDOWN };
     for (auto phase : phases) {
         auto call_requests_array = phase == TxExecutionPhase::SETUP       ? public_inputs.public_setup_call_requests
                                    : phase == TxExecutionPhase::APP_LOGIC ? public_inputs.public_app_logic_call_requests
@@ -342,8 +342,7 @@ std::vector<Row> Execution::gen_trace(AvmPublicInputs const& public_inputs,
 
         vinfo("Beginning execution of phase ", to_name(phase), " (", public_call_requests.size(), " enqueued calls).");
         AvmError error = AvmError::NO_ERROR;
-        for (size_t i = 0; i < public_call_requests.size(); i++) {
-            const auto public_call_request = public_call_requests.at(i);
+        for (auto public_call_request : public_call_requests) {
             vinfo("Executing enqueued public call to contract address ", public_call_request.contract_address);
 
             trace_builder.set_public_call_request(public_call_request);
@@ -369,7 +368,6 @@ std::vector<Row> Execution::gen_trace(AvmPublicInputs const& public_inputs,
 
                 debug("[PC:" + std::to_string(pc) + "] [IC:" + std::to_string(counter++) + "] " + inst.to_string() +
                       " (gasLeft l2=" + std::to_string(trace_builder.get_l2_gas_left()) + ")");
-
                 switch (inst.op_code) {
                     // Compute
                     // Compute - Arithmetic

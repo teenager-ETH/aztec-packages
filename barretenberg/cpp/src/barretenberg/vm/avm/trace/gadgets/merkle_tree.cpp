@@ -119,15 +119,9 @@ FF AvmMerkleTreeTraceBuilder::perform_storage_write([[maybe_unused]] uint32_t cl
         //  We update the low value
         low_preimage.value = value;
         FF low_preimage_hash = unconstrained_hash_public_data_preimage(low_preimage);
-        // Update the low leaf - this will be returned in future
-        [[maybe_unused]] FF root =
+        // Update the low leaf
+        tree_snapshots.public_data_tree.root =
             unconstrained_update_leaf_index(low_preimage_hash, static_cast<uint64_t>(low_index), low_path);
-        // TEMPORARY UNTIL WE CHANGE HOW UPDATES WORK
-        // Insert a zero leaf at the insertion index
-        tree_snapshots.public_data_tree.root = unconstrained_update_leaf_index(
-            FF::zero(), static_cast<uint64_t>(tree_snapshots.public_data_tree.size), insertion_path);
-        // The size of the tree is incremented
-        tree_snapshots.public_data_tree.size++;
         return tree_snapshots.public_data_tree.root;
     }
     // The new leaf for an insertion is
@@ -199,12 +193,12 @@ FF AvmMerkleTreeTraceBuilder::perform_nullifier_append([[maybe_unused]] uint32_t
     // Update hash of the low preimage
     low_preimage_hash = unconstrained_hash_nullifier_preimage(low_preimage);
     // Update the root with new low preimage
-    unconstrained_update_leaf_index(low_preimage_hash, static_cast<uint64_t>(low_index), low_path);
+    FF updated_root = unconstrained_update_leaf_index(low_preimage_hash, static_cast<uint64_t>(low_index), low_path);
     // Check membership of the zero leaf at the insertion index against the new root
     auto index = static_cast<uint64_t>(tree_snapshots.nullifier_tree.size);
-    // bool zero_leaf_member = unconstrained_check_membership(FF::zero(), index, insertion_path, updated_root);
-    // ASSERT(zero_leaf_member);
-    //  Hash the new preimage
+    bool zero_leaf_member = unconstrained_check_membership(FF::zero(), index, insertion_path, updated_root);
+    ASSERT(zero_leaf_member);
+    // Hash the new preimage
     FF leaf_preimage_hash = unconstrained_hash_nullifier_preimage(new_preimage);
     // Insert the new leaf into the tree
     tree_snapshots.nullifier_tree.root = unconstrained_update_leaf_index(leaf_preimage_hash, index, insertion_path);
