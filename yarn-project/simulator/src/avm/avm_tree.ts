@@ -551,7 +551,7 @@ enum TreeType {
   NODE,
 }
 
-type Leaf = {
+export type Leaf = {
   tag: TreeType.LEAF;
   value: Fr;
 };
@@ -750,7 +750,10 @@ export class EphemeralAvmTree {
   public hashTree(tree: Tree, depth: number): Fr {
     switch (tree.tag) {
       case TreeType.NODE: {
-        return poseidon2Hash([this.hashTree(tree.leftTree, depth - 1), this.hashTree(tree.rightTree, depth - 1)]);
+        //console.log(`\thash(${this.hashTree(tree.leftTree, depth - 1)}, ${this.hashTree(tree.rightTree, depth - 1)})`);
+        const result = poseidon2Hash([this.hashTree(tree.leftTree, depth - 1), this.hashTree(tree.rightTree, depth - 1)]);
+        //console.log(`\tresult: ${result}`);
+        return result;
       }
       case TreeType.LEAF: {
         return tree.value;
@@ -866,7 +869,8 @@ export class EphemeralAvmTree {
     switch (tree.tag) {
       case TreeType.NODE: {
         // Look at the next element of the path to decided if we go left or right, note this mutates!
-        return searchPath.pop() === 0
+        const parity = searchPath.pop() === 0;
+        const result = parity
           ? this._getSiblingPath(
               searchPath,
               tree.leftTree,
@@ -877,6 +881,11 @@ export class EphemeralAvmTree {
               tree.rightTree,
               [this.hashTree(tree.leftTree, searchPath.length)].concat(acc),
             );
+        const lstr = parity ? 'ACTIVE' : '      ';
+        const rstr = !parity ? 'ACTIVE' : '      ';
+        console.log(`${lstr} left:  ${this.hashTree(tree.leftTree, searchPath.length)})`);
+        console.log(`${rstr} right: ${this.hashTree(tree.rightTree, searchPath.length)})`);
+        return result;
       }
       // In these two situations we are exploring a subtree we dont have information about
       // We should return an error and look inside the DB

@@ -6,6 +6,7 @@ import {
   type PublicCallRequest,
   type PublicDataTreeLeafPreimage,
   SerializableContractInstance,
+  NULLIFIER_TREE_HEIGHT,
 } from '@aztec/circuits.js';
 import { computePublicDataTreeLeafSlot, siloNoteHash, siloNullifier } from '@aztec/circuits.js/hash';
 import { Fr } from '@aztec/foundation/fields';
@@ -19,7 +20,7 @@ import { type WorldStateDB } from '../../public/public_db_sources.js';
 import { type PublicSideEffectTraceInterface } from '../../public/side_effect_trace_interface.js';
 import { type AvmContractCallResult } from '../avm_contract_call_result.js';
 import { type AvmExecutionEnvironment } from '../avm_execution_environment.js';
-import { AvmEphemeralForest } from '../avm_tree.js';
+import { AvmEphemeralForest, Leaf } from '../avm_tree.js';
 import { NullifierCollisionError, NullifierManager } from './nullifiers.js';
 import { PublicStorage } from './public_storage.js';
 
@@ -337,7 +338,7 @@ export class AvmPersistableStateManager {
   }
 
   /**
-   * Get membership information for a siloed nullifier.
+   * Helper to get membership information for a siloed nullifier when checking its existence.
    * @param siloedNullifier - the siloed nullifier to get membership information for
    * @returns
    *     - exists - whether the nullifier exists in the nullifier set
@@ -345,7 +346,7 @@ export class AvmPersistableStateManager {
    *     - leafOrLowLeafIndex - the leaf index of the nullifier leaf or its low-leaf if it doesn't exist
    *     - leafOrLowLeafPath - the sibling path of the nullifier leaf or its low-leaf if it doesn't exist
    */
-  public async getNullifierMembership(
+  private async getNullifierMembership(
     siloedNullifier: Fr,
   ): Promise<
     [
@@ -372,6 +373,16 @@ export class AvmPersistableStateManager {
       assert(
         update == exists,
         'WorldStateDB contains nullifier leaf, but merkle tree does not (or vice versa).... This is a bug!',
+      );
+
+      this.log.debug(`check leafPreimage: nullifier:${leafPreimage.nullifier}, nextNullifier:${leafPreimage.nextNullifier}, nextIndex:${leafPreimage.nextIndex.toString()}`);
+      this.log.debug(`leaf hash: ${this.merkleTrees.hashPreimage(leafPreimage)}`);
+      const leaf = this.merkleTrees.treeMap.get(MerkleTreeId.NULLIFIER_TREE)!.getNode(leafIndex, NULLIFIER_TREE_HEIGHT) as Leaf;
+      this.log.debug(`leaf node: ${leaf.value}`);
+      this.log.debug(`check leafIndex: ${leafIndex.toString()}`);
+      this.log.debug(`check leafPath: ${JSON.stringify(leafPath)}`);
+      this.log.debug(
+        `Nullifier tree root during check ${this.merkleTrees.treeMap.get(MerkleTreeId.NULLIFIER_TREE)!.getRoot()}`,
       );
 
       if (exists) {
@@ -450,6 +461,9 @@ export class AvmPersistableStateManager {
         const lowLeafIndex = appendResult.lowWitness.index;
         const lowLeafPath = appendResult.lowWitness.siblingPath;
         const insertionPath = appendResult.insertionPath;
+        this.log.debug(`nullifier lowLeafPreimage: nullifier:${lowLeafPreimage.nullifier}, nextNullifier:${lowLeafPreimage.nextNullifier}, nextIndex:${lowLeafPreimage.nextIndex.toString()}`);
+        this.log.debug(`lowLeafPath: ${JSON.stringify(lowLeafPath)}`);
+        this.log.debug(`insertionPath: ${JSON.stringify(insertionPath)}`);
         this.trace.traceNewNullifier(
           siloedNullifier,
           lowLeafPreimage,

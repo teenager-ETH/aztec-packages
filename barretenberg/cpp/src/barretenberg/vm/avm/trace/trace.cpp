@@ -145,11 +145,59 @@ void AvmTraceBuilder::rollback_to_non_revertible_checkpoint()
     merkle_tree_trace_builder.rollback_to_non_revertible_checkpoint();
 }
 
+std::vector<uint8_t> AvmTraceBuilder::get_bytecode(const FF contract_address, bool check_membership)
+{
+    uint32_t clk = 0;
+    // auto clk = static_cast<uint32_t>(main_trace.size()) + 1;
+
+    for (auto const& hint : execution_hints.all_contract_bytecode) {
+        info("hint contract address: ", hint.contract_instance.address);
+        info("hint nullifier: ", hint.contract_instance.membership_hint.low_leaf_preimage.nullifier);
+    }
+
+    // Find the bytecode based on contract address of the public call request
+    const AvmContractBytecode bytecode_hint =
+        *std::ranges::find_if(execution_hints.all_contract_bytecode, [contract_address](const auto& contract) {
+            return contract.contract_instance.address == contract_address;
+        });
+    if (check_membership) {
+        NullifierReadTreeHint nullifier_read_hint = bytecode_hint.contract_instance.membership_hint;
+        // hinted nullifier should match the specified contract address
+        info("hinted low leaf nullifier: ", nullifier_read_hint.low_leaf_preimage.nullifier);
+        info("hinted next nullifier: ", nullifier_read_hint.low_leaf_preimage.next_nullifier);
+        info("hinted next index: ", nullifier_read_hint.low_leaf_preimage.next_index);
+        info("contract address: ", contract_address);
+        info("leaf index: ", nullifier_read_hint.low_leaf_index);
+        for (auto const& node : nullifier_read_hint.low_leaf_sibling_path) {
+            info("low_leaf_path: ", node);
+        }
+        ASSERT(nullifier_read_hint.low_leaf_preimage.nullifier == contract_address);
+        bool is_member = merkle_tree_trace_builder.perform_nullifier_read(clk,
+                                                                          nullifier_read_hint.low_leaf_preimage,
+                                                                          nullifier_read_hint.low_leaf_index,
+                                                                          nullifier_read_hint.low_leaf_sibling_path);
+        // TODO(dbanks12): handle non-existent bytecode
+        // if the contract address nullifier is hinted as "exists", the membership check should agree
+        ASSERT(is_member);
+    }
+
+    info("Found bytecode for contract address: ", contract_address);
+    return bytecode_hint.bytecode;
+}
+
 void AvmTraceBuilder::insert_private_state(const std::vector<FF>& siloed_nullifiers,
                                            [[maybe_unused]] const std::vector<FF>& siloed_note_hashes)
 {
     for (const auto& siloed_nullifier : siloed_nullifiers) {
         auto hint = execution_hints.nullifier_write_hints[nullifier_write_counter++];
+        info("siloed_nullifier: ", siloed_nullifier);
+        info("low_leaf_membership.low_leaf_preimage.nullifier: ", hint.low_leaf_membership.low_leaf_preimage.nullifier);
+        for (auto const& node : hint.low_leaf_membership.low_leaf_sibling_path) {
+            info("low_leaf_membership_sibling_path: ", node);
+        }
+        for (auto const& node : hint.insertion_path) {
+            info("insertion_path: ", node);
+        }
         merkle_tree_trace_builder.perform_nullifier_append(0,
                                                            hint.low_leaf_membership.low_leaf_preimage,
                                                            hint.low_leaf_membership.low_leaf_index,
@@ -3170,23 +3218,38 @@ AvmError AvmTraceBuilder::op_get_contract_instance(
         error = AvmError::CHECK_TAG_ERROR;
     }
 
-    // Read the contract instance
-    ContractInstanceHint instance = execution_hints.contract_instance_hints.at(read_address.val);
+    FF member_value = 0;
+    bool exists = false;
 
-    FF member_value;
-    switch (chosen_member) {
-    case ContractInstanceMember::DEPLOYER:
-        member_value = instance.deployer_addr;
-        break;
-    case ContractInstanceMember::CLASS_ID:
-        member_value = instance.contract_class_id;
-        break;
-    case ContractInstanceMember::INIT_HASH:
-        member_value = instance.initialisation_hash;
-        break;
-    default:
-        member_value = 0;
-        break;
+    if (is_ok(error)) {
+        // Read the contract instance
+        ContractInstanceHint instance = execution_hints.contract_instance_hints.at(read_address.val);
+        // nullifier read hint for the contract address
+        NullifierReadTreeHint nullifier_read_hint = instance.membership_hint;
+        // hinted nullifier should match the specified contract addrss
+        ASSERT(nullifier_read_hint.low_leaf_preimage.nullifier == read_address.val);
+        bool is_member = merkle_tree_trace_builder.perform_nullifier_read(clk,
+                                                                          nullifier_read_hint.low_leaf_preimage,
+                                                                          nullifier_read_hint.low_leaf_index,
+                                                                          nullifier_read_hint.low_leaf_sibling_path);
+        // if the contract address nullifier is hinted as "exists", the membership check should agree
+        ASSERT(is_member == exists);
+        exists = instance.exists;
+
+        switch (chosen_member) {
+        case ContractInstanceMember::DEPLOYER:
+            member_value = instance.deployer_addr;
+            break;
+        case ContractInstanceMember::CLASS_ID:
+            member_value = instance.contract_class_id;
+            break;
+        case ContractInstanceMember::INIT_HASH:
+            member_value = instance.initialisation_hash;
+            break;
+        default:
+            member_value = 0;
+            break;
+        }
     }
 
     // TODO(8603): once instructions can have multiple different tags for writes, write dst as FF and exists as
@@ -3230,7 +3293,7 @@ AvmError AvmTraceBuilder::op_get_contract_instance(
     // TODO(8603): once instructions can have multiple different tags for writes, remove this and do a
     // constrained writes
     write_to_memory(resolved_dst_offset, member_value, AvmMemoryTag::FF);
-    write_to_memory(resolved_exists_offset, FF(static_cast<uint32_t>(instance.exists)), AvmMemoryTag::U1);
+    write_to_memory(resolved_exists_offset, FF(static_cast<uint32_t>(exists)), AvmMemoryTag::U1);
 
     // TODO(dbanks12): compute contract address nullifier from instance preimage and perform membership check
 

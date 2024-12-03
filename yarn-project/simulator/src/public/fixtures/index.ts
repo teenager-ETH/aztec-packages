@@ -1,4 +1,4 @@
-import { PublicExecutionRequest, Tx } from '@aztec/circuit-types';
+import { MerkleTreeId, PublicExecutionRequest, Tx } from '@aztec/circuit-types';
 import {
   type AvmCircuitInputs,
   CallContext,
@@ -21,6 +21,7 @@ import {
   TxConstantData,
   TxContext,
   computePublicBytecodeCommitment,
+  NULLIFIER_SUBTREE_HEIGHT,
 } from '@aztec/circuits.js';
 import { makeContractClassPublic, makeContractInstanceFromClassId } from '@aztec/circuits.js/testing';
 import { type ContractArtifact, type FunctionArtifact } from '@aztec/foundation/abi';
@@ -54,6 +55,11 @@ export async function simulateAvmTestContractGenerateCircuitInputs(
   const worldStateDB = new WorldStateDB(merkleTrees, contractDataSource);
 
   const contractInstance = contractDataSource.contractInstance;
+  merkleTrees.batchInsert(
+    MerkleTreeId.NULLIFIER_TREE,
+    [contractInstance.address.toBuffer()],
+    NULLIFIER_SUBTREE_HEIGHT,
+  );
 
   const simulator = new PublicTxSimulator(
     merkleTrees,
