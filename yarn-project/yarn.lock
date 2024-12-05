@@ -307,6 +307,7 @@ __metadata:
     commander: ^12.1.0
     jest: ^29.5.0
     jest-mock-extended: ^3.0.3
+    msgpackr: ^1.11.2
     pako: ^2.1.0
     source-map-support: ^0.5.21
     ts-node: ^10.9.1
@@ -14921,6 +14922,18 @@ __metadata:
     msgpackr-extract:
       optional: true
   checksum: f7d9aae68196b3612e522a81c939b226045d115e97233541bf8475d170ca686f814bfdb6255865912d052f87f37466dbadf09ca17541b315f03d9ad9f6b439ef
+  languageName: node
+  linkType: hard
+
+"msgpackr@npm:^1.11.2":
+  version: 1.11.2
+  resolution: "msgpackr@npm:1.11.2"
+  dependencies:
+    msgpackr-extract: ^3.0.2
+  dependenciesMeta:
+    msgpackr-extract:
+      optional: true
+  checksum: 53b30ddd68fd98ae95690017787f3b54414191314f3d36329cc01c073ec35fece87c86de731ef521d1f1b8adeb294008184ad0266d3a0e62cf0867dc728dcbd1
   languageName: node
   linkType: hard
 
