@@ -34,17 +34,18 @@ import {
 } from '@aztec/circuit-types';
 import {
   type ARCHIVE_HEIGHT,
+  type BlockHeader,
   type ContractClassPublic,
   type ContractDataSource,
   type ContractInstanceWithAddress,
   EthAddress,
   Fr,
   type GasFees,
-  type Header,
   INITIAL_L2_BLOCK_NUM,
   type L1_TO_L2_MSG_TREE_HEIGHT,
   type NOTE_HASH_TREE_HEIGHT,
   type NULLIFIER_TREE_HEIGHT,
+  type NodeInfo,
   type NullifierLeafPreimage,
   type PUBLIC_DATA_TREE_HEIGHT,
   type PrivateLog,
@@ -170,7 +171,7 @@ export class AztecNodeService implements AztecNode {
     // start both and wait for them to sync from the block source
     await Promise.all([p2pClient.start(), worldStateSynchronizer.start()]);
 
-    const validatorClient = createValidatorClient(config, p2pClient, telemetry);
+    const validatorClient = await createValidatorClient(config, config.l1Contracts.rollupAddress, p2pClient, telemetry);
 
     // now create the sequencer
     const sequencer = config.disableValidator
@@ -235,6 +236,29 @@ export class AztecNodeService implements AztecNode {
    */
   public isReady() {
     return Promise.resolve(this.p2pClient.isReady() ?? false);
+  }
+
+  public async getNodeInfo(): Promise<NodeInfo> {
+    const [nodeVersion, protocolVersion, chainId, enr, contractAddresses, protocolContractAddresses] =
+      await Promise.all([
+        this.getNodeVersion(),
+        this.getVersion(),
+        this.getChainId(),
+        this.getEncodedEnr(),
+        this.getL1ContractAddresses(),
+        this.getProtocolContractAddresses(),
+      ]);
+
+    const nodeInfo: NodeInfo = {
+      nodeVersion,
+      l1ChainId: chainId,
+      protocolVersion,
+      enr,
+      l1ContractAddresses: contractAddresses,
+      protocolContractAddresses: protocolContractAddresses,
+    };
+
+    return nodeInfo;
   }
 
   /**
@@ -743,7 +767,7 @@ export class AztecNodeService implements AztecNode {
    * Returns the currently committed block header, or the initial header if no blocks have been produced.
    * @returns The current committed block header.
    */
-  public async getBlockHeader(blockNumber: L2BlockNumber = 'latest'): Promise<Header> {
+  public async getBlockHeader(blockNumber: L2BlockNumber = 'latest'): Promise<BlockHeader> {
     return (
       (await this.getBlock(blockNumber === 'latest' ? -1 : blockNumber))?.header ??
       this.worldStateSynchronizer.getCommitted().getInitialHeader()
