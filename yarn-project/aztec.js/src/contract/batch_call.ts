@@ -71,7 +71,6 @@ export class BatchCall extends BaseContractInteraction {
       Promise.all(unconstrainedCalls),
       this.wallet.simulateTx(txRequest, true, options?.from, options?.skipTxValidation),
     ]);
-    if (simulatedTx.revertCode.isOk()) {
 
     const results: any[] = [];
 

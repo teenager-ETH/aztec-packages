@@ -58,10 +58,6 @@ export type ProcessedTx = {
    */
   gasUsed: GasUsed;
   /**
-   *
-   */
-  revertCode: RevertCode;
-  /**
    * Reason the tx was reverted.
    */
   revertReason: SimulationError | undefined;
@@ -107,7 +103,6 @@ export function makeEmptyProcessedTx(
   clientProofOutput.constants = constants;
 
   return {
-    revertCode: RevertCode.OK,
     hash: new TxHash(Fr.ZERO.toBuffer()),
     data: clientProofOutput,
     clientIvcProof: ClientIvcProof.empty(),
@@ -156,7 +151,6 @@ export function makeProcessedTxFromPrivateOnlyTx(
   };
 
   return {
-    revertCode: RevertCode.OK,
     hash: tx.getTxHash(),
     data: tx.data,
     clientIvcProof: tx.clientIvcProof,
@@ -217,7 +211,6 @@ export function makeProcessedTxFromTxWithPublicCalls(
   );
 
   return {
-    revertCode,
     hash: tx.getTxHash(),
     data: tx.data,
     clientIvcProof: tx.clientIvcProof,
