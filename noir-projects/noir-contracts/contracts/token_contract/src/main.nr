@@ -535,7 +535,7 @@ contract Token {
 
     // docs:start:mint_to_private
     /// Mints token `amount` to a private balance of `to`. Message sender has to have minter permissions (checked
-    /// in the enqueud call).
+    /// in the enqueued call).
     #[private]
     fn mint_to_private(
         from: AztecAddress, // sender of the tag: TODO(#9887): this is not great?
