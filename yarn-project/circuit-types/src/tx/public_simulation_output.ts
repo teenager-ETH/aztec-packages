@@ -1,4 +1,4 @@
-import { CombinedConstantData, Fr, Gas } from '@aztec/circuits.js';
+import { CombinedConstantData, Fr, Gas, RevertCode } from '@aztec/circuits.js';
 import { type ZodFor, schemas } from '@aztec/foundation/schemas';
 
 import times from 'lodash.times';
@@ -47,6 +47,7 @@ export class NestedProcessReturnValues {
  */
 export class PublicSimulationOutput {
   constructor(
+    public revertCode: RevertCode,
     public revertReason: SimulationError | undefined,
     public constants: CombinedConstantData,
     public txEffect: TxEffect,
@@ -57,6 +58,7 @@ export class PublicSimulationOutput {
   static get schema() {
     return z
       .object({
+        revertCode: RevertCode.schema,
         revertReason: SimulationError.schema.optional(),
         constants: CombinedConstantData.schema,
         txEffect: TxEffect.schema,
@@ -66,6 +68,7 @@ export class PublicSimulationOutput {
       .transform(
         fields =>
           new PublicSimulationOutput(
+            fields.revertCode,
             fields.revertReason,
             fields.constants,
             fields.txEffect,
@@ -77,6 +80,7 @@ export class PublicSimulationOutput {
 
   static random() {
     return new PublicSimulationOutput(
+      RevertCode.random(),
       SimulationError.random(),
       CombinedConstantData.empty(),
       TxEffect.empty(),

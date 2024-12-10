@@ -811,6 +811,7 @@ export class AztecNodeService implements AztecNode {
       this.log.debug(`Simulated tx ${tx.getTxHash()} ${processedTx.revertReason ? 'Reverts' : 'Succeeds'}`);
 
       return new PublicSimulationOutput(
+        processedTx.revertCode,
         processedTx.revertReason,
         processedTx.constants,
         processedTx.txEffect,

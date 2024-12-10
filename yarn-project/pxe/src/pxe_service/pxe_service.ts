@@ -818,8 +818,12 @@ export class PXEService implements PXE {
     // Or return as reverted if it fails in a phase that allows reverts (app logic, teardown)
     try {
       const result = await this.node.simulatePublicCalls(tx);
-      if (result.revertReason) {
-        throw result.revertReason;
+      if (result.txEffect.revertCode) {
+        if (result.revertReason) {
+          throw result.revertReason;
+        } else {
+          throw new Error(`Simulation of public calls failed: ${result.txEffect.revertCode.getDescription()}`);
+        }
       }
       return result;
     } catch (err) {

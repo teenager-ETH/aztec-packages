@@ -16,6 +16,7 @@ import {
   computeContractAddressFromInstance,
   computeContractClassId,
   getContractClassFromArtifact,
+  RevertCode,
 } from '@aztec/circuits.js';
 import { computeVarArgsHash } from '@aztec/circuits.js/hash';
 import { makeCombinedConstantData, makeGas, makePublicCallRequest } from '@aztec/circuits.js/testing';
@@ -159,6 +160,7 @@ export const mockSimulatedTx = (seed = 1) => {
   const privateExecutionResult = mockPrivateExecutionResult(seed);
   const tx = mockTx(seed);
   const output = new PublicSimulationOutput(
+    RevertCode.OK,
     undefined,
     makeCombinedConstantData(),
     TxEffect.random(),
