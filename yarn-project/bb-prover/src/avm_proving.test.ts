@@ -14,7 +14,14 @@ import fs from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'path';
 
-import { type BBSuccess, BB_RESULT, generateAvmProof, generateAvmProofV2, verifyAvmProof } from './bb/execute.js';
+import {
+  type BBSuccess,
+  BB_RESULT,
+  generateAvmProof,
+  generateAvmProofV2,
+  verifyAvmProof,
+  verifyAvmProofV2,
+} from './bb/execute.js';
 import { extractAvmVkData } from './verification_key/verification_key_data.js';
 
 const TIMEOUT = 180_000;
@@ -94,7 +101,7 @@ describe('AVM WitGen, proof generation and verification', () => {
     const avmCircuitInputs = await simulateAvmTestContractGenerateCircuitInputs(functionName, calldata, false);
 
     const internalLogger = createLogger('bb-prover:avm-proving-test');
-    // const logger = (msg: string, _data?: any) => internalLogger.verbose(msg);
+    const logger = (msg: string, _data?: any) => internalLogger.verbose(msg);
 
     // The paths for the barretenberg binary and the write path are hardcoded for now.
     const bbPath = path.resolve('../../barretenberg/cpp/build/bin/bb');
@@ -106,6 +113,24 @@ describe('AVM WitGen, proof generation and verification', () => {
       internalLogger.error(`Proof generation failed: ${proofRes.reason}`);
     }
     expect(proofRes.status).toEqual(BB_RESULT.SUCCESS);
+    const succeededRes = proofRes as BBSuccess;
+
+    // Then we verify.
+    // Placeholder for now.
+    const publicInputs = {
+      dummy: [] as any[],
+    };
+
+    const rawVkPath = path.join(succeededRes.vkPath!, 'vk');
+    const verificationRes = await verifyAvmProofV2(
+      bbPath,
+      bbWorkingDirectory,
+      succeededRes.proofPath!,
+      publicInputs,
+      rawVkPath,
+      logger,
+    );
+    expect(verificationRes.status).toBe(BB_RESULT.SUCCESS);
   }, 180_000);
 });
 
