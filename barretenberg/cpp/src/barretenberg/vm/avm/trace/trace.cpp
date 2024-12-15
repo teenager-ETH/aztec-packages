@@ -3529,7 +3529,8 @@ AvmError AvmTraceBuilder::constrain_external_call(OpCode opcode,
 
     // We push the current ext call ctx onto the stack and initialize a new one
     current_ext_call_ctx.last_pc = pc;
-    current_ext_call_ctx.success_offset = resolved_success_offset,
+    current_ext_call_ctx.success_offset = resolved_success_offset;
+    current_ext_call_ctx.tree_snapshot = merkle_tree_trace_builder.get_tree_snapshots();
     external_call_ctx_stack.emplace(current_ext_call_ctx);
 
     // Ext Ctx setup
@@ -3538,18 +3539,17 @@ AvmError AvmTraceBuilder::constrain_external_call(OpCode opcode,
 
     set_call_ptr(static_cast<uint8_t>(clk));
 
-    current_ext_call_ctx = ExtCallCtx{
-        .context_id = static_cast<uint8_t>(clk),
-        .parent_id = current_ext_call_ctx.context_id,
-        .contract_address = read_addr.val,
-        .calldata = calldata,
-        .nested_returndata = {},
-        .last_pc = 0,
-        .success_offset = 0,
-        .l2_gas = static_cast<uint32_t>(read_gas_l2.val),
-        .da_gas = static_cast<uint32_t>(read_gas_da.val),
-        .internal_return_ptr_stack = {},
-    };
+    current_ext_call_ctx = ExtCallCtx{ .context_id = static_cast<uint8_t>(clk),
+                                       .parent_id = current_ext_call_ctx.context_id,
+                                       .contract_address = read_addr.val,
+                                       .calldata = calldata,
+                                       .nested_returndata = {},
+                                       .last_pc = 0,
+                                       .success_offset = 0,
+                                       .l2_gas = static_cast<uint32_t>(read_gas_l2.val),
+                                       .da_gas = static_cast<uint32_t>(read_gas_da.val),
+                                       .internal_return_ptr_stack = {},
+                                       .tree_snapshot = {} };
     set_pc(0);
 
     return error;
@@ -3662,6 +3662,8 @@ ReturnDataError AvmTraceBuilder::op_return(uint8_t indirect, uint32_t ret_offset
             // Update the call_ptr before we write the success flag
             set_call_ptr(static_cast<uint8_t>(current_ext_call_ctx.context_id));
             write_to_memory(current_ext_call_ctx.success_offset, FF::one(), AvmMemoryTag::U1);
+            // If we successfully returned, we update the current parent's tree state
+            current_ext_call_ctx.tree_snapshot = merkle_tree_trace_builder.get_tree_snapshots();
         }
     }
 
@@ -3754,9 +3756,11 @@ ReturnDataError AvmTraceBuilder::op_revert(uint8_t indirect, uint32_t ret_offset
             current_ext_call_ctx = external_call_ctx_stack.top();
             external_call_ctx_stack.pop();
             current_ext_call_ctx.nested_returndata = returndata;
-            // Update the call_ptr before we write the success flag
+            // Update the call_ptr before we write the fail flag
             set_call_ptr(static_cast<uint8_t>(current_ext_call_ctx.context_id));
-            write_to_memory(current_ext_call_ctx.success_offset, FF::one(), AvmMemoryTag::U1);
+            write_to_memory(current_ext_call_ctx.success_offset, FF::zero(), AvmMemoryTag::U1);
+            // Reset the tree state to parent's snapshot
+            merkle_tree_trace_builder.set_tree_snapshots(current_ext_call_ctx.tree_snapshot);
         }
     }
 
