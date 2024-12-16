@@ -437,27 +437,31 @@ void AvmTraceBuilder::write_to_memory(AddressWithMode addr, FF val, AvmMemoryTag
 }
 
 template <typename T>
-void AvmTraceBuilder::read_slice_from_memory(AddressWithMode addr, size_t slice_len, std::vector<T>& slice)
+AvmError AvmTraceBuilder::read_slice_from_memory(uint32_t addr, uint32_t slice_len, std::vector<T>& slice)
 {
-    uint32_t base_addr = addr.offset;
-    if (addr.mode == AddressingMode::INDIRECT) {
-        base_addr = static_cast<uint32_t>(mem_trace_builder.unconstrained_read(call_ptr, base_addr));
+    // Memory out-of-range occurs when there is an overflow over uint32_t
+    if (slice_len != 0 && addr + slice_len - 1 < addr) {
+        return AvmError::MEM_SLICE_OUT_OF_RANGE;
     }
 
     for (uint32_t i = 0; i < slice_len; i++) {
-        slice.push_back(static_cast<T>(mem_trace_builder.unconstrained_read(call_ptr, base_addr + i)));
+        slice.push_back(static_cast<T>(mem_trace_builder.unconstrained_read(call_ptr, addr + i)));
     }
+    return AvmError::NO_ERROR;
 }
 
-template <typename T>
-void AvmTraceBuilder::write_slice_to_memory(AddressWithMode addr, AvmMemoryTag w_tag, const T& slice)
+template <typename T> AvmError AvmTraceBuilder::write_slice_to_memory(uint32_t addr, AvmMemoryTag w_tag, const T& slice)
 {
-    auto base_addr = addr.mode == AddressingMode::INDIRECT
-                         ? static_cast<uint32_t>(mem_trace_builder.unconstrained_read(call_ptr, addr.offset))
-                         : addr.offset;
-    for (uint32_t i = 0; i < slice.size(); i++) {
-        write_to_memory(base_addr + i, slice[i], w_tag);
+    const size_t slice_len = slice.size();
+    // Memory out-of-range occurs when there is an overflow over uint32_t or slice being huge (more than 32 bits).
+    if (slice_len > UINT32_MAX || (slice_len != 0 && addr + static_cast<uint32_t>(slice_len) - 1 < addr)) {
+        return AvmError::MEM_SLICE_OUT_OF_RANGE;
     }
+
+    for (uint32_t i = 0; i < slice_len; i++) {
+        write_to_memory(addr + i, slice[i], w_tag);
+    }
+    return AvmError::NO_ERROR;
 }
 
 // Finalise Lookup Counts
@@ -1958,7 +1962,7 @@ AvmError AvmTraceBuilder::op_calldata_copy(uint8_t indirect,
             mem_trace_builder.write_calldata_copy(calldata, clk, call_ptr, cd_offset, copy_size, dst_offset_resolved);
         } else {
             // If we are not at the top level, we write to memory directly
-            write_slice_to_memory(dst_offset_resolved, AvmMemoryTag::FF, calldata);
+            error = write_slice_to_memory(dst_offset_resolved, AvmMemoryTag::FF, calldata);
         }
     }
 
@@ -2073,7 +2077,7 @@ AvmError AvmTraceBuilder::op_returndata_copy(uint8_t indirect,
 
         // Crucial to perform this operation after having incremented pc because write_slice_to_memory
         // is implemented with opcodes (SET and JUMP).
-        write_slice_to_memory(dst_offset_resolved, AvmMemoryTag::FF, returndata_slice);
+        error = write_slice_to_memory(dst_offset_resolved, AvmMemoryTag::FF, returndata_slice);
     }
     return error;
 }
@@ -3534,7 +3538,11 @@ AvmError AvmTraceBuilder::constrain_external_call(OpCode opcode,
 
     // Ext Ctx setup
     std::vector<FF> calldata;
-    read_slice_from_memory(resolved_args_offset, args_size, calldata);
+    const auto slice_err = read_slice_from_memory(resolved_args_offset, args_size, calldata);
+
+    if (is_ok(error)) {
+        error = slice_err;
+    }
 
     set_call_ptr(static_cast<uint8_t>(clk));
 
@@ -3654,7 +3662,12 @@ ReturnDataError AvmTraceBuilder::op_return(uint8_t indirect, uint32_t ret_offset
         } else {
             // We are returning from a nested call
             std::vector<FF> returndata{};
-            read_slice_from_memory(resolved_ret_offset, ret_size, returndata);
+            const auto slice_err = read_slice_from_memory(resolved_ret_offset, ret_size, returndata);
+
+            if (is_ok(error)) {
+                error = slice_err;
+            }
+
             // Pop the stack
             current_ext_call_ctx = external_call_ctx_stack.top();
             external_call_ctx_stack.pop();
@@ -3749,7 +3762,12 @@ ReturnDataError AvmTraceBuilder::op_revert(uint8_t indirect, uint32_t ret_offset
         } else {
             // We are returning from a nested call
             std::vector<FF> returndata{};
-            read_slice_from_memory(resolved_ret_offset, ret_size, returndata);
+            const auto slice_err = read_slice_from_memory(resolved_ret_offset, ret_size, returndata);
+
+            if (is_ok(error)) {
+                error = slice_err;
+            }
+
             // Pop the stack
             current_ext_call_ctx = external_call_ctx_stack.top();
             external_call_ctx_stack.pop();
@@ -4088,9 +4106,18 @@ AvmError AvmTraceBuilder::op_sha256_compression(uint8_t indirect,
     // Input for hash is expanded to 512 bits
     std::vector<uint32_t> input_vec;
     // Read results are written to h_init array.
-    read_slice_from_memory<uint32_t>(resolved_state_offset, 8, h_init_vec);
+    error = read_slice_from_memory<uint32_t>(resolved_state_offset, 8, h_init_vec);
+
+    if (!is_ok(error)) {
+        return error;
+    }
+
     // Read results are written to input array
-    read_slice_from_memory<uint32_t>(resolved_inputs_offset, 16, input_vec);
+    error = read_slice_from_memory<uint32_t>(resolved_inputs_offset, 16, input_vec);
+
+    if (!is_ok(error)) {
+        return error;
+    }
 
     // Now that we have read all the values, we can perform the operation to get the resulting witness.
     // Note: We use the sha_op_clk to ensure that the sha256 operation is performed at the same clock cycle as the
@@ -4109,7 +4136,7 @@ AvmError AvmTraceBuilder::op_sha256_compression(uint8_t indirect,
 
     // Crucial to perform this operation after having incremented pc because write_slice_to_memory
     // is implemented with opcodes (SET and JUMP).
-    write_slice_to_memory(resolved_output_offset, AvmMemoryTag::U32, ff_result);
+    error = write_slice_to_memory(resolved_output_offset, AvmMemoryTag::U32, ff_result);
 
     return AvmError::NO_ERROR;
 }
@@ -4167,7 +4194,12 @@ AvmError AvmTraceBuilder::op_keccakf1600(uint8_t indirect, uint32_t output_offse
     // Array input is fixed to 1600 bits
     std::vector<uint64_t> input_vec;
     // Read results are written to input array
-    read_slice_from_memory<uint64_t>(resolved_input_offset, KECCAKF1600_INPUT_SIZE, input_vec);
+    error = read_slice_from_memory<uint64_t>(resolved_input_offset, KECCAKF1600_INPUT_SIZE, input_vec);
+
+    if (!is_ok(error)) {
+        return error;
+    }
+
     std::array<uint64_t, KECCAKF1600_INPUT_SIZE> input = vec_to_arr<uint64_t, KECCAKF1600_INPUT_SIZE>(input_vec);
 
     // Now that we have read all the values, we can perform the operation to get the resulting witness.
@@ -4179,9 +4211,9 @@ AvmError AvmTraceBuilder::op_keccakf1600(uint8_t indirect, uint32_t output_offse
 
     // Crucial to perform this operation after having incremented pc because write_slice_to_memory
     // is implemented with opcodes (SET and JUMP).
-    write_slice_to_memory(resolved_output_offset, AvmMemoryTag::U64, result);
+    error = write_slice_to_memory(resolved_output_offset, AvmMemoryTag::U64, result);
 
-    return AvmError::NO_ERROR;
+    return error;
 }
 
 AvmError AvmTraceBuilder::op_ec_add(uint16_t indirect,
@@ -4356,7 +4388,11 @@ AvmError AvmTraceBuilder::op_variable_msm(uint8_t indirect,
 
     // Scalars are easy to read since they are stored as [lo1, hi1, lo2, hi2, ...] with the types [FF, FF, FF,FF,
     // ...]
-    read_slice_from_memory(resolved_scalars_offset, scalar_read_length, scalars_vec);
+    const auto slice_err = read_slice_from_memory(resolved_scalars_offset, scalar_read_length, scalars_vec);
+
+    if (!is_ok(slice_err)) {
+        return slice_err;
+    }
 
     // Reconstruct Grumpkin points
     std::vector<grumpkin::g1::affine_element> points;
@@ -4508,7 +4544,12 @@ AvmError AvmTraceBuilder::op_to_radix_be(uint8_t indirect,
 
     // Crucial to perform this operation after having incremented pc because write_slice_to_memory
     // is implemented with opcodes (SET and JUMP).
-    write_slice_to_memory(resolved_dst_offset, w_in_tag, res);
+    const auto slice_err = write_slice_to_memory(resolved_dst_offset, w_in_tag, res);
+
+    if (is_ok(error)) {
+        error = slice_err;
+    }
+
     return error;
 }
 
