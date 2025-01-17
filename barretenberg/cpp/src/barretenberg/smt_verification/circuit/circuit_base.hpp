@@ -22,7 +22,7 @@ enum class SubcircuitType { XOR, AND, RANGE, ROR, SHL, SHR };
  * @brief Base class for symbolic circuits
  *
  * @details Contains all the information about the circuit: gates, variables,
- * symbolic variables, specified names, global solver and optimiztaions.
+ * symbolic variables, specified names, global solver and optimizations.
  *
  */
 class CircuitBase {
